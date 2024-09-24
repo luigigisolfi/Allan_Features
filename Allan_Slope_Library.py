@@ -46,8 +46,11 @@ class Allan_Utility_Functions():
         def mjd_to_utc(self,mjd, utc_seconds):
 
             """
+            
             Utility function to convert MEX/VEX type fdets data in UTC time
+            
             """
+            
             # Convert MJD to JD
             jd = mjd + 2400000.5
             
@@ -91,6 +94,7 @@ class Allan_Utility_Functions():
                     'utc_date': self.utc_date}
                     
             """
+            
             # Arrays to store extracted data
             utc_time = []
             self.signal_to_noise = []
@@ -300,7 +304,7 @@ class Allan_Utility_Functions():
             #weights = np.log(weights + 1e-6)  # Adding a small value to avoid log(0)
             
             # Normalize the weights to a range between 0 and 1
-            norm_weights = (weights - np.min(weights)) / (np.max(weights) - np.min(weights))
+            norm_weights = (weights - np.max(weights)) / (np.min(weights) - np.max(weights))
             cmap = cm.get_cmap('plasma')  # You can choose any colormap
 
             # Generate the white noise reference line
@@ -530,13 +534,11 @@ class Allan_Utility_Functions():
 
             # Defining Weights
             rms_values = errors 
-            sum_weights = np.sum(1/rms_values **2)
             weights = 1 / (np.array(rms_values) ** 2)
 
             # Normalize the weights to a range between 0 and 1
-            norm_weights = (weights - np.min(weights)) / (np.max(weights) - np.min(weights))
+            norm_weights = (weights - np.max(weights)) / (np.min(weights) - np.max(weights))
             cmap = cm.get_cmap('plasma')  # You can choose any colormap
-
             axs[0].errorbar(taus_doppler, mdev_doppler, yerr=errors)
 
             # Generate the white noise reference line
@@ -560,6 +562,7 @@ class Allan_Utility_Functions():
             # Calculate slopes and determine is_close
             slopes = []
             is_close = []
+            mean_weights = []
             target_slope = -0.5
             threshold = 0.01  # Define a threshold for closeness
             
@@ -579,7 +582,9 @@ class Allan_Utility_Functions():
                 # Check if the slope is close to the target slope
                 is_close.append((slope_error_plus <= target_slope and target_slope <= slope_error_minus) or (slope_error_minus <= target_slope and target_slope <= slope_error_plus) or abs(slope - target_slope) <= 0.1)
                 #print(f"Interval {taus_doppler[i]:.3f} - {taus_doppler[i+1]:.3f}: Slope Bounds= {slope_error_plus:.3f},{slope_error_minus:.3f} Target Slope Falls Within Slope Bounds, or the slope is closer than 0.1: {'Yes' if is_close[i] else 'No'}")
-            
+                mean_weights.append((norm_weights[i] + norm_weights[i+1])/2) #the mean of the two weights at endpoints 
+                                                                            # is considered for the interval.
+                
             # Plot the regions where is_close is True
             start_idx = None
             for i in range(len(is_close)):
@@ -589,7 +594,7 @@ class Allan_Utility_Functions():
 
                     
                     # For each interval in the region, use the specific weight of the interval
-                    weight = norm_weights[i]  # Use weight for the current interval
+                    weight = mean_weights[i]  # Use weight for the current interval
                     color = cmap(weight)  # Get color based on current interval's weight
                     
                     # Print the weight and corresponding color for debugging
@@ -607,7 +612,7 @@ class Allan_Utility_Functions():
             if start_idx is not None:
                 for i in range(start_idx, len(is_close) - 1):
                     if is_close[i]:
-                        weight = norm_weights[i]
+                        weight = mean_weights[i]
                         color = cmap(weight)
                         axs[0].axvspan(taus_doppler[i], taus_doppler[i + 1], color=color, alpha=0.1,
                                        label='Acceptable' if 'Acceptable' not in axs[0].get_legend_handles_labels()[1] else "")
@@ -625,15 +630,15 @@ class Allan_Utility_Functions():
             sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=np.min(norm_weights), vmax=np.max(norm_weights)))
             sm.set_array([])  # Required for ScalarMappable
             cbar = fig.colorbar(sm, ax=axs[0], alpha = 0.4)
-            cbar.set_label('Error Weight')
-            
+            cbar.set_label('Weight')
+
             # Save the figure if a directory is specified
             if save_dir:
                 if os.path.exists(os.path.join(save_dir, 'parameters_error_bounds_plot.png')):
                     print(f'Removing {os.path.join(save_dir, "parameters_error_bounds_plot.png")}')
                     os.remove(os.path.join(save_dir, 'parameters_error_bounds_plot.png'))
                 plt.savefig(os.path.join(save_dir, 'parameters_error_bounds_plot.png'))
-                print(f'Saving {os.path.join(save_dir, "parameters_error_bounds_plot.png")}')
+                print(f'Saving {os.path.join(save_dir, "parameters_error_bounds_plot.png")}\n')
                 plt.close(fig)
 
             if suppress == True:
@@ -641,9 +646,134 @@ class Allan_Utility_Functions():
             else:
                 plt.show()
                 plt.close(fig)
+
+        def get_allan_index(self, extracted_data, save_dir=None, suppress=False): 
+
+            """ 
+            This function computes the Allan Index, based on the two arrays:
+
+            1) is_close = array made of as many boolean values (true or false) as the number of the fdets data points
+            2) average_weights = average weight between two consecutive data points
+
+            Input: object.ProcessFdets().extract_parameters [required]
+                   save_dir (to create and save a .txt file report) [optional, default is None]
+                   suppress (to suppress the function output, useful when used within Get_All_Plots) [optional, default is False]
+                   
+            Output: allan_index.txt and/or allan_index value
+
+            NOTES: Please note that, within this function, the slope is computed between data points only 
+                   (differently from the Get_Slope_At_Tau function, where a cubic spline interpolation is used,
+                   and hence one can retrieve slopes at any time). 
+                   The reason for this is that the error bars (which are used to compute 
+                   the minimum and maximum slope (two-sided triangle) are only available for the data points, 
+                   so it would be meaningless to interpolate the data, 
+                   as we do not actually know how to interpolate the error bars.
+        
+            """
+            
+            # Extract data
+            utc_datetime = extracted_data['utc_datetime']
+            signal_to_noise = extracted_data['signal_to_noise']
+            doppler_noise_hz = extracted_data['doppler_noise_hz']
+            first_col_name = extracted_data['first_col_name']
+            second_col_name = extracted_data['second_col_name']
+            last_col_name = extracted_data['last_col_name']
+            utc_date = extracted_data['utc_date']
+            base_frequency = extracted_data['base_frequency']
+            frequency_detection = extracted_data['frequency_detection']
+                        
+            # Calculate sampling rate in Hz
+            t_jd = [Time(time).jd for time in utc_datetime]
+            rate_fdets = 1 / (Counter(np.diff(t_jd)).most_common(1)[0][0] * 86400)
+        
+            # Calculate Modified Allan Deviation for Doppler noise
+            taus_doppler, mdev_doppler, errors, ns = allantools.mdev(
+                np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
+                rate=rate_fdets,
+                data_type='freq',
+                taus='all'
+            )
+
+            # Defining Weights
+            rms_values = errors 
+            weights = 1 / (np.array(rms_values) ** 2)
+
+            # Normalize the weights to a range between 0 and 1
+            norm_weights = (weights - np.max(weights)) / (np.min(weights) - np.max(weights))
+            cmap = cm.get_cmap('plasma')  # You can choose any colormap
+
+            # Generate the white noise reference line
+            mdev_white = [mdev_doppler[0]]  # Initialize with the first value
+            for i in range(1, len(taus_doppler)):
+                mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
+
+            # Calculate slopes and determine is_close
+            slopes = []
+            is_close = []
+            mean_weights = []
+            target_slope = -0.5
+            threshold = 0.01  # Define a threshold for closeness
+
+            num_points = len(taus_doppler) - 1
+            
+            for i in range(num_points):
+                slope = (np.log10(mdev_doppler[i + 1]) - np.log10(mdev_doppler[i])) / (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i]))
+                slopes.append(slope)
+            
+                # here, for slope_error_minus, we are creating a "double triangle" connecting 
+                # the lowest value at i with the highest at i+1 and checking the slope.
+                # same for slope_error_plus, but with interchanged endpoints
+                
+                slope_error_plus = ((np.log10(mdev_doppler[i + 1] - errors[i + 1]) - np.log10(mdev_doppler[i] + errors[i])) /
+                                   (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i])))
+                slope_error_minus = ((np.log10(mdev_doppler[i + 1] + errors[i + 1]) - np.log10(mdev_doppler[i] - errors[i])) /
+                                   (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i])))
+                
+                # Check if the slope is close to the target slope
+                is_close.append((slope_error_plus <= target_slope and target_slope <= slope_error_minus) or (slope_error_minus <= target_slope and target_slope <= slope_error_plus) or abs(slope - target_slope) <= 0.1)
+                
+                mean_weights.append((norm_weights[i] + norm_weights[i+1])/2) #the mean of the two weights at endpoints 
+                                                                            # is considered for the interval.
+                
+                # Convert lists to NumPy arrays
+                is_close_array = np.array(is_close)
+                mean_weights_array = np.array(mean_weights)
+
+            
+            # Convert is_close to float (1 for True, 0 for False) for multiplication
+            is_close_float = is_close_array.astype(float)
+            
+            # Element-wise multiplication
+            product_array = is_close_float * mean_weights_array
+            self.allan_index = np.sum(product_array)/(num_points -1)
+
+
+            # Prepare data to save in the required format
+            is_close_str = f"is_close: [{', '.join(map(str, is_close_array))}]"
+            mean_weights_str = f"average_weights:  [{', '.join(map(str, mean_weights_array))}]"
+            allan_index_str = f"allan_index = {self.allan_index}"
+
+        
+            # Save to file if save_dir is specified
+            if save_dir:
+                # Ensure the directory exists
+                os.makedirs(save_dir, exist_ok=True)
+                # Create the file path
+                file_path = os.path.join(save_dir, f'allan_index.txt\n')
+        
+                # Save data to file
+                with open(file_path, 'w') as f:
+                    f.write(f"{is_close_str}\n")
+                    f.write(f"{mean_weights_str}\n")
+                    f.write(f"{allan_index_str}\n")
+        
+                print(f'Saved Allan index data to: {file_path}\n')
+
+            if suppress == False:
+                return (self.allan_index)
             
                         
-        def Get_All_Plots(self, root_folder, JUICE = None): # Function to process and save plots for each TXT file
+        def Get_All_Outputs(self, root_folder, JUICE = None, save_index = False, save_plots = False): # Function to process and save plots for each TXT file
 
             """
             
@@ -659,19 +789,21 @@ class Allan_Utility_Functions():
                     JUICE [optional] (if JUICE == True, JUICE format is assumed. if JUICE == False, other missions format is assumed)
                     
             """
+
+            print(f'Getting Outputs From Folder: {root_folder} ...\n')
             # Compile the regex pattern to match filenames
             pattern = re.compile(r'00\d.+r.*i.txt$') 
             pattern_mex = re.compile(r'complete.+r.*i.txt$') 
 
             # Iterate through all directories and subdirectories
             for dirpath, _, filenames in os.walk(root_folder):
-                print(f'Processing Directory:{dirpath}')
                 for filename in filenames:
                     # Skip files based on certain conditions
                     if 'Phases' in filename or 'sum' in filename:
                         continue
                     # Check if the filename matches the pattern and ends with .txt
                     if pattern.search(filename):
+                        print(f'Processing Directory:{dirpath}')
                         if filename.endswith('.txt'):
                         # Full path to the TXT file
                             txt_file_path = os.path.join(dirpath, filename)
@@ -696,11 +828,19 @@ class Allan_Utility_Functions():
                             plot_dir = os.path.join(dirpath, os.path.splitext(filename)[0])  # Use the TXT file name without extension
                             os.makedirs(plot_dir, exist_ok=True)
             
-                            # Generate and save plots, suppresses output so as not to show all the plots
-                            self.plot_parameters(extracted_data, plot_dir, suppress = True)
-                            self.plot_parameters_error_bounds(extracted_data, plot_dir, suppress = True)
+                            if save_plots == True:  
+                                # Generate and save plots, suppresses output so as not to show all the plots
+                                print(f'Generating Plot File...\n')
+                                self.plot_parameters(extracted_data, plot_dir, suppress = True)
+                                self.plot_parameters_error_bounds(extracted_data, plot_dir, suppress = True)
+
+                            if save_index == True:
+                                # Generate and save allan index report
+                                print(f'Generating Allan Index File...')
+                                self.get_allan_index(extracted_data, plot_dir, suppress = True)
                             
                     if pattern_mex.search(filename): #mex phobos flyby has slightly different names and problematic files
+                        print(f'Processing Directory:{dirpath}')
                         if filename.endswith('.txt'):
                         # Full path to the TXT file
                             txt_file_path = os.path.join(dirpath, filename)
@@ -723,10 +863,17 @@ class Allan_Utility_Functions():
                             # Create a directory for saving plots
                             plot_dir = os.path.join(dirpath, os.path.splitext(filename)[0])  # Use the TXT file name without extension
                             os.makedirs(plot_dir, exist_ok=True)
-            
-                            # Generate and save plots, suppresses output so as not to show all the plots
-                            self.plot_parameters(extracted_data, plot_dir, suppress = True)
-                            self.plot_parameters_error_bounds(extracted_data, plot_dir, suppress = True)
+
+                            if save_plots == True:  
+                                # Generate and save plots, suppresses output so as not to show all the plots
+                                print(f'Generating Plot File...\n')
+                                self.plot_parameters(extracted_data, plot_dir, suppress = True)
+                                self.plot_parameters_error_bounds(extracted_data, plot_dir, suppress = True)
+
+                            if save_index == True:
+                                # Generate and save allan index report
+                                print(f'Generating Allan Index File...')
+                                self.get_allan_index(extracted_data, plot_dir, suppress = True)
  
                         
             print(f'...Done.\n') 
@@ -784,70 +931,3 @@ class Allan_Utility_Functions():
             self.slope = (np.log10(mdev_tau_delta) - np.log10(mdev_tau)) / (np.log10(tau + delta_tau) - np.log10(tau))
         
             return(self.slope)
-
-            
-    def Get_Slope_Deviation_Index_Single_File(self, extracted_data, file_path):
-
-        """
-        
-        This function is not to be trusted yet, and we need to work on it.
-        
-        """
-        
-        utc_datetime = extracted_data['utc_datetime']
-        base_frequency = extracted_data['base_frequency']
-        frequency_detection = extracted_data['frequency_detection']
-        doppler_noise_hz = extracted_data['doppler_noise_hz']
-    
-      # Convert UTC datetime to Julian Dateß
-        t_jd = [Time(time).jd for time in utc_datetime]
-        # Calculate sampling rate in Hz
-        rate_fdets = 1 / (Counter(np.diff(t_jd)).most_common(1)[0][0] * 86400)
-        
-        # Calculate Modified Allan Deviation for Doppler noise
-        taus_doppler, mdev_doppler, errors, ns = allantools.mdev(
-            np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
-            rate=rate_fdets,
-            data_type='freq',
-            taus='all'
-        )
-
-        max_tau = np.max(taus_doppler)
-        
-        first_interval = list(range(1, 11))
-        second_interval = list(range(10, 101))
-        third_interval = list(range(100, int(max_tau)))
-
-        list_intervals = [first_interval,second_interval,third_interval]
-
-        self.slope_dict = dict()
-        index_first = []
-        index_second = []
-        index_third = []
-
-        i = 0
-        for interval in list_intervals:
-            if interval == first_interval: #for the first interval, finer sampling of 2 seconds is required cause if 1 second, log10 diverges
-                 while i < (len(interval) -2):
-                     slope = self.ProcessFdets.Get_Slope_At_Tau(self.ProcessFdets, extracted_data, interval[i], interval[i+2]-interval[i])
-                     index = np.abs(slope + 0.5)
-                     index_first.append(index)
-                     i+=1
-            elif interval == second_interval:
-                while i < (len(interval) -5):
-                    slope = self.ProcessFdets.Get_Slope_At_Tau(self.ProcessFdets, extracted_data, interval[i], interval[i+5]-interval[i])
-                    index = np.abs(slope + 0.5)
-                    index_second.append(index)
-                    i+=1                                         
-            else: #for the other intervals, sampling of 5 seconds
-                while i < (len(interval) -10):
-                    slope = self.ProcessFdets.Get_Slope_At_Tau(self.ProcessFdets, extracted_data, interval[i], interval[i+10]- interval[i])
-                    index = np.abs(slope + 0.5)
-                    index_third.append(index)   
-                    i+=1
-                                         
-        self.slope_dict['first_interval'] = np.mean(index_first)
-        self.slope_dict['second_interval'] = np.mean(index_second)
-        self.slope_dict['third_interval'] = np.mean(index_third)
-
-        return(self.slope_dict)
