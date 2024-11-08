@@ -22,29 +22,41 @@ from matplotlib import cm
 from datetime import datetime, timedelta
 plt.rcParams.update({'figure.max_open_warning': 0})
 
+########################################################################################################################################
+##################################################### Main Class Definition ############################################################
+########################################################################################################################################
 class Allan_Utility_Functions():
 
     """
     This class allows fdets data characterization and processing for the following ESA missions:
 
-    JUICE (Guifre's Data: [experiments: ?????] and Giuseppe's Data:[experiments: EC094A, EC094B])
-    MEX (InSight: [experiments: ED045A,ED045C,ED045D,ED045E,ED045F] and Phobos: [experiments: GR035])
+    JUICE:   [experiments: EC094A, EC094B] + [data between Apr - May 2023]
+    MEX:     [experiment: GR035 (Phobos Flyby)])
+    INSIGHT: [experiments: ED045A,ED045C,ED045D,ED045E,ED045F]
     
-    To be included: VEX, MRO, what else...?
+    To be included: 
+    VEX, 
+    MRO, 
+    what else...?
     
     """
     
     def __init__(self):
         self.result = 0
         
+########################################################################################################################################
+##################################################### ProcessFdets class ###############################################################
+########################################################################################################################################
+    
     # Function to extract data from the file
     class ProcessFdets:
         
         def __init__(self):
             self.result = 0
 
+########################################################################################################################################
+########################################################################################################################################
         
-
         def get_observation_date(self, filename):
             with open(filename, 'r') as file:        
                 lines = file.readlines()
@@ -82,6 +94,9 @@ class Allan_Utility_Functions():
     
                         else:
                             print(f'Could Not Retrieve Observation Date from File: {filename}. Skipping...\n')
+
+########################################################################################################################################
+########################################################################################################################################
                             
         def get_base_frequency(self, filename):   
             observation_date_flag = self.get_observation_date(filename)
@@ -96,8 +111,8 @@ class Allan_Utility_Functions():
     
                         #BEWARE THIS ELIF!!!!!!!! We do not know exactly the InSight frequencies
                         elif float(lines[1].split(' ')[3]) == 0.0:
-                            self.base_frequency = 8404*1e6 ##Handle InSight data, which has bad headers, 
-                                                               ##but in the Excel file you can see the actual freq.  
+                            self.base_frequency =  8416.49*1e6 ##Handle InSight data, which has bad headers, 
+                                                               ##but in the VEX file you can see the channel frequencies .  
                     except:
                         if lines[1].split(' ')[3] == '2xxx.xx':
                             self.base_frequency = 8412*1e6 #Handle MEX data, which has some bad headers. 
@@ -105,6 +120,9 @@ class Allan_Utility_Functions():
                 return self.base_frequency                
             else: 
                 print(f'Pointless to retrieve base frequency, as there is no valid observation date in the header.')    
+
+########################################################################################################################################
+########################################################################################################################################
                     
         def get_columns_names(self, filename):
             with open(filename, 'r') as file:   
@@ -174,7 +192,10 @@ class Allan_Utility_Functions():
 
                 else:
                     print(f'Invalid number of columns: {self.n_columns}. Skipping File: {filename}...\n')
-                    
+
+########################################################################################################################################
+########################################################################################################################################
+
         def mjd_to_utc(self,mjd):
             # Define the starting reference date for MJD, which is 17 November 1858
             mjd_reference = datetime(1858, 11, 17, 0, 0, 0)
@@ -182,7 +203,9 @@ class Allan_Utility_Functions():
             # Calculate the UTC date by adding the number of days in the MJD to the reference date
             utc_date = mjd_reference + timedelta(days=mjd)
             return (utc_date.date)
-        
+
+########################################################################################################################################
+########################################################################################################################################
 
         def utc_to_mjd(self, utc_date_str):
             # Convert the UTC date string (in YYYY.MM.DD format) to a datetime object
@@ -196,7 +219,9 @@ class Allan_Utility_Functions():
             
             # Return the MJD date
             return delta.days + (delta.seconds / 86400.0)
-            
+
+########################################################################################################################################
+########################################################################################################################################
         
         def mjd_utc_seconds_to_utc(self,mjd, utc_seconds):
 
@@ -228,6 +253,8 @@ class Allan_Utility_Functions():
             # Return the full UTC date and time
             return final_utc
 
+  ################################################################################################################################################################################################################################################################################
+
         def format_observation_time(self, observation_date, time_in_seconds):
             # Convert self.observation_date from "%Y.%m.%d" to a datetime object
             observation_date = datetime.strptime(observation_date, "%Y.%m.%d")
@@ -249,6 +276,10 @@ class Allan_Utility_Functions():
             full_datetime = observation_date + time_delta
             # Return the formatted date-time in the desired format
             return datetime.strptime(str(full_datetime), "%Y-%m-%d %H:%M:%S")
+            
+
+########################################################################################################################################
+########################################################################################################################################
             
         def extract_parameters(self, filename):
 
@@ -363,6 +394,8 @@ class Allan_Utility_Functions():
                         'utc_date': self.observation_date
                     }                
 
+        ########################################################################################################################################
+########################################################################################################################################
 
         def parse_datetime(self,t):
 
@@ -380,7 +413,9 @@ class Allan_Utility_Functions():
                 return datetime.strptime(str(t), "%Y-%m-%dT%H:%M:%S.%f")
             except ValueError:
                 return datetime.strptime(str(t), "%Y-%m-%dT%H:%M:%S")
-       
+
+        ########################################################################################################################################
+########################################################################################################################################
 
         def plot_parameters(self, extracted_data, save_dir=None, suppress=False): 
 
@@ -622,13 +657,15 @@ class Allan_Utility_Functions():
                 else:
                     plt.show()
                     plt.close(fig)
-                
+
+        ########################################################################################################################################
+########################################################################################################################################
                 
         def plot_parameters_error_bounds(self, extracted_data, save_dir=None, suppress=False): 
 
             """ 
             This function is supposed to be an improvement of plot_parameters, as 
-            it accounts for the errorbars in the slope computation. The "acceptable regions" (green ones)
+            it accounts for the errorbars in the slope computation. The "acceptable regions"
             are either:
             
             1) those regions for which, taking the error bars into account, satisfy 
@@ -636,6 +673,7 @@ class Allan_Utility_Functions():
             -0.5 belongs to [slope_min, slope_max]
             
             with 
+            
             slope_min = [(slope[i+1] - error_plus[i+1]) - (slope[i] + error_minus[i])]/(tau[i+1] -tau[i]) 
             slope_max = [(slope[i+1] + error_plus[i+1]) - (slope[i] - error_minus[i])]/(tau[i+1] -tau[i]) 
 
@@ -847,9 +885,10 @@ class Allan_Utility_Functions():
             else:
                 print(f'Cannot plot the data for File due to the reasons explained above. Skipping...\n')
 
+        ########################################################################################################################################
+########################################################################################################################################
+                
         def get_allan_index(self, extracted_data, save_dir=None, suppress=False):
-
-        
 
             """ 
             This function computes the Allan Index, based on the two arrays:
@@ -966,8 +1005,8 @@ class Allan_Utility_Functions():
     
     
                 # Prepare data to save in the required format
-                is_close_str = f"is_close: [{', '.join(map(str, is_close_array))}]"
-                mean_weights_str = f"average_weights:  [{', '.join(map(str, mean_weights_array))}]"
+                #is_close_str = f"is_close: [{', '.join(map(str, is_close_array))}]"
+                #mean_weights_str = f"average_weights:  [{', '.join(map(str, mean_weights_array))}]"
                 allan_index_str = f"allan_index = {self.allan_index}"
     
             
@@ -981,8 +1020,8 @@ class Allan_Utility_Functions():
             
                     # Save data to file
                     with open(file_path, 'w') as f:
-                        f.write(f"{is_close_str}\n")
-                        f.write(f"{mean_weights_str}\n")
+                        #f.write(f"{is_close_str}\n")
+                        #f.write(f"{mean_weights_str}\n")
                         f.write(f"{allan_index_str}\n")
                         
                     print(f'Saved Allan index data to: {file_path}\n')
@@ -991,7 +1030,11 @@ class Allan_Utility_Functions():
                     return (self.allan_index)
             else:
                 print(f'Cannot compute Allan Index due to the reasons explained above. Skipping ...')
-                        
+
+
+########################################################################################################################################
+########################################################################################################################################
+
         def Get_All_Outputs(self, root_folder, save_index = False, save_plots = False): # Function to process and save plots for each TXT file
 
             """
@@ -1098,6 +1141,9 @@ class Allan_Utility_Functions():
  
                         
             print(f'...Done.\n') 
+
+########################################################################################################################################
+########################################################################################################################################
             
         #Function to compute the averaged Modified Allan Deviation Slope for a given tau (in seconds)
         def Get_Slope_At_Tau(self, extracted_data, tau, delta_tau):
@@ -1145,6 +1191,7 @@ class Allan_Utility_Functions():
                 )
             except Exception as e:
                 print(f"An error occurred: {e}")
+                
             # Calculate Modified Allan Deviation for Doppler noise
             taus_doppler, mdev_doppler, errors, ns = allantools.mdev(
                 np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
