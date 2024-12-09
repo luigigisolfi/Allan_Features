@@ -1,0 +1,85 @@
+
+PDS Validate Tool Report
+
+Configuration:
+   Version     3.6.1
+   Date        2024-12-09T08:31:43Z
+
+Parameters:
+   Targets                      [file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0001.r0i.lblx, file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0002.r0i.lblx, file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0003.r0i.lblx, file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0004.r0i.lblx, file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0005.r0i.lblx, file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0006.r0i.lblx, file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0007.r0i.lblx, file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0008.r0i.lblx]
+   Rule Type                    pds4.label
+   Severity Level               WARNING
+   Recurse Directories          true
+   File Filters Used            [*.lblx, *.LBLX]
+   Data Content Validation      on
+   Product Level Validation     on
+   Max Errors                   100000
+   Registered Contexts File     null/registered_context_products.json
+
+
+
+Product Level Validation Results
+
+  PASS: file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0001.r0i.lblx
+      WARNING  [warning.label.bad_schematypens]   Could not find expected pattern [schematypens=] in label file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0001.r0i.lblx
+      WARNING  [warning.label.missing_schematron_spec]   No schematrons specified in the label
+        1 product validation(s) completed
+
+  PASS: file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0002.r0i.lblx
+      WARNING  [warning.label.bad_schematypens]   Could not find expected pattern [schematypens=] in label file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0002.r0i.lblx
+      WARNING  [warning.label.missing_schematron_spec]   No schematrons specified in the label
+        2 product validation(s) completed
+
+  PASS: file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0003.r0i.lblx
+      WARNING  [warning.label.bad_schematypens]   Could not find expected pattern [schematypens=] in label file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0003.r0i.lblx
+      WARNING  [warning.label.missing_schematron_spec]   No schematrons specified in the label
+        3 product validation(s) completed
+
+  PASS: file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0004.r0i.lblx
+      WARNING  [warning.label.bad_schematypens]   Could not find expected pattern [schematypens=] in label file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0004.r0i.lblx
+      WARNING  [warning.label.missing_schematron_spec]   No schematrons specified in the label
+        4 product validation(s) completed
+
+  PASS: file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0005.r0i.lblx
+      WARNING  [warning.label.bad_schematypens]   Could not find expected pattern [schematypens=] in label file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0005.r0i.lblx
+      WARNING  [warning.label.missing_schematron_spec]   No schematrons specified in the label
+        5 product validation(s) completed
+
+  PASS: file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0006.r0i.lblx
+      WARNING  [warning.label.bad_schematypens]   Could not find expected pattern [schematypens=] in label file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0006.r0i.lblx
+      WARNING  [warning.label.missing_schematron_spec]   No schematrons specified in the label
+        6 product validation(s) completed
+
+  PASS: file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0007.r0i.lblx
+      WARNING  [warning.label.bad_schematypens]   Could not find expected pattern [schematypens=] in label file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0007.r0i.lblx
+      WARNING  [warning.label.missing_schematron_spec]   No schematrons specified in the label
+        7 product validation(s) completed
+
+  PASS: file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0008.r0i.lblx
+      WARNING  [warning.label.bad_schematypens]   Could not find expected pattern [schematypens=] in label file:/Users/lgisolfi/Desktop/data_archiving-1.0/small_dataset/juice/jc230417/Hbe/dop0/Fdets.jui2023.04.17.Hb.0008.r0i.lblx
+      WARNING  [warning.label.missing_schematron_spec]   No schematrons specified in the label
+        8 product validation(s) completed
+
+Summary:
+
+  8 product(s)
+  0 error(s)
+  16 warning(s)
+
+  Product Validation Summary:
+    8          product(s) passed
+    0          product(s) failed
+    0          product(s) skipped
+    8          product(s) total
+
+  Referential Integrity Check Summary:
+    0          check(s) passed
+    0          check(s) failed
+    0          check(s) skipped
+    0          check(s) total
+
+  Message Types:
+    8            warning.label.bad_schematypens
+    8            warning.label.missing_schematron_spec
+
+End of Report
