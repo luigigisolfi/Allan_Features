@@ -1,0 +1,6 @@
+# Mission: vex
+# X-band Observable: 8418.1
+# VEX file name: vex_files/vex/v0314.vex
+# Station | Baseband Frequency (MHz)
+
+Ht: 8417.99

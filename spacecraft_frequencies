@@ -1,0 +1,39 @@
+$$  SPACECRAFT OBSERVABLE TABLE 2020.06.20
+$$
+$$  Spacecraft observable at X-band for tracking purposes
+$$  ~~~~~~~~~~~~~~~~~~~~~~~
+$$
+$$  gmc  2021.04.10  v0.1 all spacecraft missions added
+$$  gmc  2020.06.30  Table generated
+$$
+$$ Format: Spacecraft - Code - Frequency [MHz]- Antenna - Approx. SNR - Approx. stochastic noise - updated
+$$ Approximate SNR uses 5 Hz and 5 s integration time - after swspec
+    Akatsuki                          AKA    8410.926    Ww        0      0        00.00.2010
+    BepiColombo                       BCO    8420.293    Cd     6317     84 mHz    17.02.2021
+    ExoMars - Trace Gas Orbiter       TGO    8410.710    Ht    11500     90 mHz    29.07.2017
+    ExoMars                           EXO    8424.592    Xx        0      0        00.00.0000
+    Gaia                              GAI    xxxx.xxx    Xx        0      0        00.00.0000
+    Herschell                         HER    xxxx.xxx    Xx        0      0        00.00.0000
+    Huygens                           HUY    xxxx.xxx    Xx        0      0        00.00.0000
+    Ikaros                            IKA    8431.296    Ww        0      0        00.00.2010
+    Juno                              JNO    8403.523    Ho      450    150 mHz    07.09.2020
+    Mars Express                      MEX    8420.750    Cd    10000     30 mHz    22.02.2020
+    Mars Insight                      MIN    8404.502    T6      120    300 mHz    25.07.2020
+    Mars Odyssey                      MOD    8407.250    Cd      360    830 mHz    22.02.2020
+    Mars Orbiter Mission              MOM    xxxx.xxx    Xx        0      0        00.00.0000
+    Mars Perseverance Rover           M20    8435.550    Cd   115000     88 mHz    18.02.2021
+    Mars2020                          M20    8415.000    ??        0      0        00.00.0000
+    Mars Reconnaissance Orbiter       MRO    8439.750    Cd       30   23.70 Hz    22.02.2020
+    Maven                             MVN    8446.235    Xx        0      0        00.00.0000
+    Mars Science Laboratory/Curiosity MSL    8402.777
+    Emirates Mars Mission/Hope        EMM    8401.419
+    Radio Astron                      RAS    8399.700    Wz    32000      3 mHz    29.09.2012
+    Rosetta                           ROS    8421.875    Mh      898     40 mHz    01.04.2016
+    StereoA/B                         STA    8446.230    Wz     3000    200 mHz    06.02.2012
+    Tianwen-1                         TIW    8429.938    Cd              1.0       01.04.2021
+    Ulysses                           ULY    xxxx.xxx    Xx        0      0        00.00.0000
+    Venus Express                     VEX    8418.100    Ht     9500     26 mHz    21.04.2011
+JUICE				      JUC    8435-8436
+
+$ MAVEN-- NASA Mars Atmosphere and Volatile Evolution (MAVEN)
+$ M010-- Mars Odissey
