@@ -421,7 +421,7 @@ class Allan_Utility_Functions():
 
             """ 
             This function plots thos regions in the mADEV of our data for which the slope is closest
-            to the white noise (target_slope = -0.5).
+            to the white noise (target_slope = -1).
 
             orange regions: abs(slope - target_slope) <= 0.01
             green regions: abs(slope - target_slope) <= 0.01
@@ -439,6 +439,7 @@ class Allan_Utility_Functions():
                    and hence one can retrieve slopes at any time). 
         
             """
+            target_slope = -1
             if extracted_data != None:
                 
                 # Extract data
@@ -531,7 +532,7 @@ class Allan_Utility_Functions():
                 # Generate the white noise reference line
                 mdev_white = [mdev_doppler[0]]  # Initialize with the first value
                 for i in range(1, len(taus_doppler)):
-                    mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
+                    mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(target_slope))
             
                 # Plot the Modified Allan Deviation and the white noise line
                 axs[0].loglog(taus_doppler, mdev_white, linestyle='--', color='black', label=r'White Noise $\propto{\tau^{-0.5}}$')
@@ -549,7 +550,7 @@ class Allan_Utility_Functions():
                 # Calculate slopes for given intervals
                 slopes = []
                 slope_errors = []
-                target_slope = -0.5
+                target_slope = -1
                 
                 # Detect consecutive regions where the slope is close to -0.5 (white noise)
                 threshold_10 = 0.1 # 10% away from white noise
@@ -697,6 +698,7 @@ class Allan_Utility_Functions():
                    as we do not actually know how to interpolate the error bars.
         
             """
+            target_slope = -1
             if extracted_data != None:
                 # Extract data
                 utc_datetime = extracted_data['utc_datetime']
@@ -780,7 +782,7 @@ class Allan_Utility_Functions():
                 # Generate the white noise reference line
                 mdev_white = [mdev_doppler[0]]  # Initialize with the first value
                 for i in range(1, len(taus_doppler)):
-                    mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
+                    mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(target_slope))
                 
                 # Plot the Modified Allan Deviation and the white noise line
                 axs[0].loglog(taus_doppler, mdev_white, linestyle='--', color='black', label=r'White Noise $\propto{\tau^{-0.5}}$')
@@ -799,7 +801,7 @@ class Allan_Utility_Functions():
                 slopes = []
                 is_close = []
                 mean_weights = []
-                target_slope = -0.5
+                target_slope = -1
                 threshold = 0.01  # Define a threshold for closeness
                 
                 for i in range(len(taus_doppler) - 1):
@@ -913,6 +915,8 @@ class Allan_Utility_Functions():
             """
 
             if extracted_data != None:
+
+                target_slope = -1
             
                 # Extract data
                 utc_datetime = extracted_data['utc_datetime']
@@ -961,13 +965,13 @@ class Allan_Utility_Functions():
                 # Generate the white noise reference line
                 mdev_white = [mdev_doppler[0]]  # Initialize with the first value
                 for i in range(1, len(taus_doppler)):
-                    mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
+                    mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(target_slope))
     
                 # Calculate slopes and determine is_close
                 slopes = []
                 is_close = []
                 mean_weights = []
-                target_slope = -0.5
+                target_slope = -1
                 threshold = 0.01  # Define a threshold for closeness
     
                 num_points = len(taus_doppler) - 1
