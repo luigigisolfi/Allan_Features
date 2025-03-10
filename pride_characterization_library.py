@@ -3009,7 +3009,6 @@ class PrideDopplerCharacterization:
 
                 # Plot mADEV in the corresponding subplot for each day
                 for date in unique_dates_list:
-
                     date_data_mask = [d.strftime('%Y-%m-%d') == date for d in utc_datetime]
                     if any(date_data_mask):
                         ax = axs[unique_dates_list.index(date)]
@@ -3438,7 +3437,7 @@ class PrideDopplerCharacterization:
         ########################################################################################################################################
 
         def plot_user_defined_parameters(self, extracted_data, save_dir=None, suppress=False,
-                                         plot_snr=False, plot_doppler_noise=False, plot_fdets=False, plot_mad=False):
+                                         plot_snr=False, plot_doppler_noise=False, plot_fdets=False, plot_mad=False, remove_outliers = True):
 
             """
             Description:
@@ -3485,6 +3484,7 @@ class PrideDopplerCharacterization:
                 utc_datetime = extracted_data['utc_datetime']
                 signal_to_noise = extracted_data['signal_to_noise']
                 doppler_noise_hz = extracted_data['doppler_noise_hz']
+
                 frequency_detection = extracted_data['frequency_detection']
                 utc_date = extracted_data['utc_date']
                 receiving_station = extracted_data["receiving_station_name"]
@@ -3506,8 +3506,21 @@ class PrideDopplerCharacterization:
                 plot_index = 0
 
                 if plot_snr:
-                    axs[plot_index].plot(range(len(utc_datetime)), signal_to_noise, marker='+', linestyle='-',
-                                         color='blue', markersize=0.5, linewidth=0.1)
+                    if remove_outliers:
+                        lower_percentile = np.percentile(np.array(signal_to_noise), 5)  # 5th percentile
+                        upper_percentile = np.percentile(np.array(signal_to_noise), 95)  # 95th percentile
+                        # Filter outliers
+                        snr_mask = (signal_to_noise >= lower_percentile) & (signal_to_noise <= upper_percentile)
+                        filtered_utc_datetime_snr = np.array(utc_datetime)[snr_mask]
+                        filtered_signal_to_noise = np.array(signal_to_noise)[snr_mask]
+
+                        axs[plot_index].plot(range(len(filtered_utc_datetime_snr)), filtered_signal_to_noise, marker='+', linestyle='-',
+                                             color='blue', markersize=5, linewidth=0.5)
+
+                    else:
+
+                        axs[plot_index].plot(range(len(utc_datetime)), signal_to_noise, marker='+', linestyle='-',
+                                                 color='blue', markersize=5, linewidth=0.5)
                     axs[plot_index].set_xlabel(f'UTC Time (HH:MM:SS) on {utc_date}')
                     axs[plot_index].set_ylabel('Signal-to-Noise Ratio')
                     axs[plot_index].set_title('SNR vs UTC Time')
@@ -3517,8 +3530,19 @@ class PrideDopplerCharacterization:
                     plot_index += 1
 
                 if plot_doppler_noise:
-                    axs[plot_index].plot(range(len(utc_datetime)), doppler_noise_hz, marker='+', linestyle='-',
-                                         color='orange', markersize=0.5, linewidth=0.1)
+                    if remove_outliers:
+                        lower_percentile = np.percentile(np.array(doppler_noise_hz), 5)  # 5th percentile
+                        upper_percentile = np.percentile(np.array(doppler_noise_hz), 95)  # 95th percentile
+                        # Filter outliers
+                        doppler_mask = (doppler_noise_hz >= lower_percentile) & (doppler_noise_hz <= upper_percentile)
+                        filtered_utc_datetime_doppler = np.array(utc_datetime)[doppler_mask]
+                        filtered_doppler_noise_hz = np.array(doppler_noise_hz)[doppler_mask]
+                        axs[plot_index].plot(range(len(filtered_utc_datetime_doppler)), filtered_doppler_noise_hz, marker='+', linestyle='-',
+                                             color='orange', markersize=5, linewidth=0.5)
+
+                    else:
+                        axs[plot_index].plot(range(len(utc_datetime)), doppler_noise_hz, marker='+', linestyle='-',
+                                                 color='orange', markersize=5, linewidth=0.5)
                     axs[plot_index].set_xlabel(f'UTC Time (HH:MM:SS) on {utc_date}')
                     axs[plot_index].set_ylabel('Doppler Noise')
                     axs[plot_index].set_title('Doppler Noise vs UTC Time')
@@ -3529,7 +3553,7 @@ class PrideDopplerCharacterization:
 
                 if plot_fdets:
                     axs[plot_index].scatter(range(len(utc_datetime)), frequency_detection, marker='o',
-                                            color='black', s=1)
+                                            color='black', s=5)
                     axs[plot_index].set_xlabel(f'UTC Time (HH:MM:SS) on {utc_date}')
                     axs[plot_index].set_ylabel('Freq Detections')
                     axs[plot_index].set_title('Frequency Detections')
@@ -3559,7 +3583,7 @@ class PrideDopplerCharacterization:
     ########################################################################################################################################
 ########################################################################################################################################
 
-        def get_doppler_noise_statistics(self, extracted_data_list, experiment_name, save_dir=None, suppress=False):
+        def get_doppler_noise_statistics(self, extracted_data_list, experiment_name, save_dir=None, suppress=False, remove_outliers = True):
             """
             Plots histograms of Doppler noise for each station, grouped by date.
 
@@ -3600,11 +3624,21 @@ class PrideDopplerCharacterization:
                     utc_datetime = extracted_data['utc_datetime']
                     doppler_noise_hz = np.array(extracted_data['doppler_noise_hz'])
 
+
                     for date in unique_dates_list:
-                        date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
+                        if remove_outliers:
+                            lower_percentile = np.percentile(np.array(doppler_noise_hz), 5)  # 5th percentile
+                            upper_percentile = np.percentile(np.array(doppler_noise_hz), 95)  # 95th percentile
+                            mask = (doppler_noise_hz >= lower_percentile) & (doppler_noise_hz <= upper_percentile)
+                            date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in np.array(utc_datetime)[mask]])
+                            doppler_noise_hz = doppler_noise_hz[mask]
+
+                        else:
+                            date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
 
                         if np.any(date_data_mask):  # Only plot if there is data for this date
                             doppler_noise_filtered = doppler_noise_hz[date_data_mask]  # Apply mask
+
                             mean_doppler_noise = np.mean(doppler_noise_filtered)
                             rms_doppler_noise = np.sqrt(np.mean(doppler_noise_filtered**2))
                             ax = axs[unique_dates_list.index(date)]
@@ -3624,7 +3658,7 @@ class PrideDopplerCharacterization:
                 if not suppress:
                     plt.show()
 
-        def get_snr_statistics(self, extracted_data_list, experiment_name, save_dir=None, suppress=False):
+        def get_snr_statistics(self, extracted_data_list, experiment_name, save_dir=None, suppress=False, remove_outliers = True):
             """
             Plots histograms of SNR for each station, grouped by date.
 
@@ -3665,20 +3699,33 @@ class PrideDopplerCharacterization:
                     utc_datetime = extracted_data['utc_datetime']
                     snr = np.array(extracted_data['signal_to_noise'])
 
-                    for date in unique_dates_list:
-                        date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
+                    if remove_outliers:
+                        lower_percentile = np.percentile(np.array(snr), 5)  # 5th percentile
+                        upper_percentile = np.percentile(np.array(snr), 95)  # 95th percentile
+                        # Filter outliers
+                        snr_mask = (snr >= lower_percentile) & (snr <= upper_percentile)
+                        filtered_utc_datetime_snr = np.array(utc_datetime)[snr_mask]
+                        filtered_snr = np.array(snr)[snr_mask]
+                        snr = filtered_snr
 
-                        if np.any(date_data_mask):  # Only plot if there is data for this date
-                            snr_filtered = snr[date_data_mask]  # Apply mask
-                            mean_snr = np.mean(snr_filtered)
-                            rms_snr = np.sqrt(np.mean(snr_filtered**2))
-                            ax = axs[unique_dates_list.index(date)]
-                            ax.hist(snr_filtered, bins=30, alpha=0.3, color=colors[i], label = f'mean: {round(mean_snr, 4)}, rms = {round(rms_snr, 4)}')
+                        for date in unique_dates_list:
+                            date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in filtered_utc_datetime_snr])
 
-                            ax.set_xlabel('Signal to Noise Ratio (SNR)')
-                            ax.set_ylabel('Counts')
-                            ax.set_title(f'{station} Station - Experiment {experiment_name} on {date}')
-                            ax.legend()
+                    else:
+                        for date in unique_dates_list:
+                            date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
+
+                    if np.any(date_data_mask):  # Only plot if there is data for this date
+                        snr_filtered = snr[date_data_mask]  # Apply mask
+                        mean_snr = np.mean(snr_filtered)
+                        rms_snr = np.sqrt(np.mean(snr_filtered**2))
+                        ax = axs[unique_dates_list.index(date)]
+                        ax.hist(snr_filtered, bins=30, alpha=0.3, color=colors[i], label = f'mean: {round(mean_snr, 4)}, rms = {round(rms_snr, 4)}')
+
+                        ax.set_xlabel('Signal to Noise Ratio (SNR)')
+                        ax.set_ylabel('Counts')
+                        ax.set_title(f'{station} Station - Experiment {experiment_name} on {date}')
+                        ax.legend()
 
                 plt.tight_layout()
 
@@ -3690,7 +3737,7 @@ class PrideDopplerCharacterization:
                     plt.show()
 
 
-        def plot_doppler_noise_distribution(self, extracted_data_list, experiment_name, save_dir=None, suppress=True):
+        def plot_doppler_noise_distribution(self, extracted_data_list, experiment_name, save_dir=None, suppress=True, remove_outliers = True):
             """
             Plots the Doppler noise distribution for all stations in a single histogram using sns.displot.
             Adjusts for stations with very bad noise.
@@ -3713,6 +3760,14 @@ class PrideDopplerCharacterization:
                 #    continue
                 doppler_noise_hz = extracted_data['doppler_noise_hz']
 
+                if remove_outliers:
+                    # Filtering Outliers
+                    lower_percentile = np.percentile(np.array(doppler_noise_hz), 5)  # 5th percentile
+                    upper_percentile = np.percentile(np.array(doppler_noise_hz), 95)  # 95th percentile
+                    # Filter outliers
+                    mask = (doppler_noise_hz >= lower_percentile) & (doppler_noise_hz <= upper_percentile)
+                    doppler_noise_hz = np.array(doppler_noise_hz)[mask]
+
                 # Store each value with its corresponding station
                 for value in doppler_noise_hz:
                     data_list.append({'Doppler Noise (Hz)': value, 'Station': station_name})
@@ -3723,13 +3778,14 @@ class PrideDopplerCharacterization:
             sns.set(style="whitegrid")
             plt.figure(figsize=(15, 10))
 
+
+
             g = sns.displot(df, x="Doppler Noise (Hz)", hue="Station", kind="kde", palette="tab10", fill = True)
 
 
             plt.title(f"Doppler Noise Distribution - {experiment_name}")
             plt.xlabel("Doppler Noise (Hz)")
             plt.ylabel("Counts")
-            plt.xlim(-0.02,0.02)
             plt.tight_layout()
 
             if save_dir:

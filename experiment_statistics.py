@@ -18,12 +18,12 @@ analysis = pride.Analysis(process_fdets, utilities)
 #    )
 #exit()
 
-experiments_to_analyze = {'mex': ['gr035']}
+experiments_to_analyze = {'min': ['ed045a', 'ed045c', 'ed045d', 'ed045e', 'ed045f']}
 
 for mission_name, experiment_names in experiments_to_analyze.items():
     for experiment_name in experiment_names:
-        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/input/complete_badary/'
-        output_dir = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/input/complete_badary/'
+        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/input/complete/'
+        output_dir = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/output'
         horizons_target = utilities.mission_name_to_horizons_target(mission_name)
         print(f'Performing Statistical Analysis for mission: {mission_name} (Horizons Code: {horizons_target})...')
         dir_path = fdets_folder_path
