@@ -18,7 +18,7 @@ analysis = pride.Analysis(process_fdets, utilities)
 #    )
 #exit()
 
-experiments_to_analyze = {'min': ['ed045a', 'ed045c', 'ed045d', 'ed045e', 'ed045f']}
+experiments_to_analyze = {'mex': ['gr035']}
 
 for mission_name, experiment_names in experiments_to_analyze.items():
     for experiment_name in experiment_names:
@@ -49,6 +49,7 @@ for mission_name, experiment_names in experiments_to_analyze.items():
                         save_dir = os.path.join(output_dir, 'user_defined_parameters'),
                         plot_snr = True,
                         plot_doppler_noise = True,
+                        plot_fdets= True,
                         suppress = True
                     )
                     analysis.get_elevation_plot(
@@ -62,53 +63,54 @@ for mission_name, experiment_names in experiments_to_analyze.items():
 
                     station_ids.append(station_id) # Append station_id to list station_ids
 
-        # Plot SNR and Doppler Noise statistics with errorbars
-        analysis.get_all_stations_statistics(
-            fdets_folder_path = fdets_folder_path,
-            experiment_name = experiment_name,
-            extracted_parameters_list= extracted_data_list,
-            doppler_noise_statistics = True,
-            snr_statistics= True,
-            save_dir = os.path.join(output_dir, 'statistics')
-        )
+exit()
+#        # Plot SNR and Doppler Noise statistics with errorbars
+#        analysis.get_all_stations_statistics(
+#            fdets_folder_path = fdets_folder_path,
+#            experiment_name = experiment_name,
+#            extracted_parameters_list= extracted_data_list,
+#            doppler_noise_statistics = True,
+#            snr_statistics= True,
+#            save_dir = os.path.join(output_dir, 'statistics')
+#        )
 
-        # Plot elevation for all available stations
-        analysis.get_elevation_plot(
-            files_list,
-            horizons_target,
-            station_ids,
-            experiment_name,
-            suppress = True,
-            save_dir = os.path.join(output_dir, 'statistics')
-        )
+#        # Plot elevation for all available stations
+#        analysis.get_elevation_plot(
+#            files_list,
+#            horizons_target,
+#            station_ids,
+#            experiment_name,
+#            suppress = True,
+#            save_dir = os.path.join(output_dir, 'statistics')
+#        )
 
-        #Combine Images
-        snr_noise_folder = os.path.join(output_dir, 'user_defined_parameters/snr_noise')
-        elevation_folder = os.path.join(output_dir, 'elevation')
+#        #Combine Images
+#        snr_noise_folder = os.path.join(output_dir, 'user_defined_parameters/snr_noise')
+#        elevation_folder = os.path.join(output_dir, 'elevation')
 
 
-        # Get lists of image filenames from both folders
-        snr_images = sorted(os.listdir(snr_noise_folder))  # Ensure sorted order
-        elevation_images = sorted(os.listdir(elevation_folder))  # Ensure sorted order
+#        # Get lists of image filenames from both folders
+#        snr_images = sorted([file for file in os.listdir(snr_noise_folder) if file.endswith('.png')])  # Ensure sorted order
+#        elevation_images = sorted([file for file in os.listdir(elevation_folder) if file.endswith('.png')])  # Ensure sorted order
 
-        # Zip them into tuples (assuming each folder contains matching files)
-        images_to_combine = zip(snr_images, elevation_images)
+#        # Zip them into tuples (assuming each folder contains matching files)
+#        images_to_combine = zip(snr_images, elevation_images)
 
-        # Iterate through image pairs and combine them
-        for snr_image, elevation_image in images_to_combine:
-            station_id = snr_image.split('_')[0]
-            date = snr_image.split('_')[1]
+#        # Iterate through image pairs and combine them
+#        for snr_image, elevation_image in images_to_combine:
+#            station_id = snr_image.split('_')[0]
+#            date = snr_image.split('_')[1]
 
-            # Create full paths
-            snr_image_path = os.path.join(snr_noise_folder, snr_image)
-            elevation_image_path = os.path.join(elevation_folder, elevation_image)
+#            # Create full paths
+#            snr_image_path = os.path.join(snr_noise_folder, snr_image)
+#            elevation_image_path = os.path.join(elevation_folder, elevation_image)
 
-            # Call the function with a list of tuples, maintaining correct filename
-            utilities.combine_plots(
-                image_paths =[snr_image_path, elevation_image_path],  # Pass a list of image paths
-                output_dir = os.path.join(output_dir, 'elevation_snr_noise'),
-                output_file_name=f'{station_id}_{date}_combined.png',
-                direction='vertical'
-            )
+#            # Call the function with a list of tuples, maintaining correct filename
+#            utilities.combine_plots(
+#                image_paths =[snr_image_path, elevation_image_path],  # Pass a list of image paths
+#                output_dir = os.path.join(output_dir, 'elevation_snr_noise'),
+#                output_file_name=f'{station_id}_{date}_combined.png',
+#                direction='vertical'
+#            )
 
-    print('Done.')
+#    print('Done.')

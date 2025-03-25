@@ -20,6 +20,7 @@ from PIL import Image
 from collections import defaultdict
 import pandas as pd
 import re
+import csv
 ########################################################################################################################################
 ##################################################### Main Class Definition ############################################################
 ########################################################################################################################################
@@ -3437,8 +3438,7 @@ class PrideDopplerCharacterization:
         ########################################################################################################################################
 
         def plot_user_defined_parameters(self, extracted_data, save_dir=None, suppress=False,
-                                         plot_snr=False, plot_doppler_noise=False, plot_fdets=False, plot_mad=False, remove_outliers = True):
-
+                                         plot_snr=False, plot_doppler_noise=False, plot_fdets=False, plot_mad=False, remove_outliers=True):
             """
             Description:
             Plots user-defined parameters (such as Signal-to-Noise Ratio, Doppler Noise, Frequency Detections, and MAD)
@@ -3476,15 +3476,14 @@ class PrideDopplerCharacterization:
 
             Output:
             None
-                The function displays the plot and saves the figure to the specified directory if a valid `save_dir` is given.
-                If `save_dir` is provided, a plot image file (PNG) is saved under a folder named after the active flags.
-                If `suppress=False`, the plot is also shown on the screen.
+                The function displays the plot and saves the figure to the specified directory if a valid save_dir is given.
+                If save_dir is provided, a plot image file (PNG) is saved under a folder named after the active flags, together with the correspoding .txt file
+                If suppress=False, the plot is also shown on the screen.
             """
             if extracted_data is not None:
                 utc_datetime = extracted_data['utc_datetime']
                 signal_to_noise = extracted_data['signal_to_noise']
                 doppler_noise_hz = extracted_data['doppler_noise_hz']
-
                 frequency_detection = extracted_data['frequency_detection']
                 utc_date = extracted_data['utc_date']
                 receiving_station = extracted_data["receiving_station_name"]
@@ -3493,34 +3492,35 @@ class PrideDopplerCharacterization:
                 xticks = np.linspace(0, len(utc_datetime) - 1, num=num_ticks, dtype=int)
                 xtick_labels = [utc_datetime[i].strftime("%H:%M:%S") for i in xticks]
 
-                # Determine the number of subplots
                 plot_flags = {'snr': plot_snr, 'noise': plot_doppler_noise, 'fdets': plot_fdets, 'mad': plot_mad}
                 active_flags = [key for key, value in plot_flags.items() if value]
 
                 fig, axs = plt.subplots(len(active_flags), 1, figsize=(12, 10))
                 fig.subplots_adjust(hspace=0.5)
-
                 if len(active_flags) == 1:
                     axs = [axs]  # Ensure axs is always iterable
 
                 plot_index = 0
+                output_data = []
 
                 if plot_snr:
                     if remove_outliers:
-                        lower_percentile = np.percentile(np.array(signal_to_noise), 5)  # 5th percentile
-                        upper_percentile = np.percentile(np.array(signal_to_noise), 95)  # 95th percentile
-                        # Filter outliers
+                        lower_percentile = np.percentile(signal_to_noise, 5)
+                        upper_percentile = np.percentile(signal_to_noise, 95)
                         snr_mask = (signal_to_noise >= lower_percentile) & (signal_to_noise <= upper_percentile)
                         filtered_utc_datetime_snr = np.array(utc_datetime)[snr_mask]
                         filtered_signal_to_noise = np.array(signal_to_noise)[snr_mask]
-
                         axs[plot_index].plot(range(len(filtered_utc_datetime_snr)), filtered_signal_to_noise, marker='+', linestyle='-',
                                              color='blue', markersize=5, linewidth=0.5)
-
                     else:
-
+                        filtered_utc_datetime_snr = utc_datetime
+                        filtered_signal_to_noise = signal_to_noise
                         axs[plot_index].plot(range(len(utc_datetime)), signal_to_noise, marker='+', linestyle='-',
-                                                 color='blue', markersize=5, linewidth=0.5)
+                                             color='blue', markersize=5, linewidth=0.5)
+
+                    for t, snr in zip(filtered_utc_datetime_snr, filtered_signal_to_noise):
+                        output_data.append([t.strftime('%Y-%m-%d %H:%M:%S'), 'SNR', snr])
+
                     axs[plot_index].set_xlabel(f'UTC Time (HH:MM:SS) on {utc_date}')
                     axs[plot_index].set_ylabel('Signal-to-Noise Ratio')
                     axs[plot_index].set_title('SNR vs UTC Time')
@@ -3531,18 +3531,22 @@ class PrideDopplerCharacterization:
 
                 if plot_doppler_noise:
                     if remove_outliers:
-                        lower_percentile = np.percentile(np.array(doppler_noise_hz), 5)  # 5th percentile
-                        upper_percentile = np.percentile(np.array(doppler_noise_hz), 95)  # 95th percentile
-                        # Filter outliers
+                        lower_percentile = np.percentile(doppler_noise_hz, 5)
+                        upper_percentile = np.percentile(doppler_noise_hz, 95)
                         doppler_mask = (doppler_noise_hz >= lower_percentile) & (doppler_noise_hz <= upper_percentile)
                         filtered_utc_datetime_doppler = np.array(utc_datetime)[doppler_mask]
                         filtered_doppler_noise_hz = np.array(doppler_noise_hz)[doppler_mask]
                         axs[plot_index].plot(range(len(filtered_utc_datetime_doppler)), filtered_doppler_noise_hz, marker='+', linestyle='-',
                                              color='orange', markersize=5, linewidth=0.5)
-
                     else:
+                        filtered_utc_datetime_doppler = utc_datetime
+                        filtered_doppler_noise_hz = doppler_noise_hz
                         axs[plot_index].plot(range(len(utc_datetime)), doppler_noise_hz, marker='+', linestyle='-',
-                                                 color='orange', markersize=5, linewidth=0.5)
+                                             color='orange', markersize=5, linewidth=0.5)
+
+                    for t, doppler in zip(filtered_utc_datetime_doppler, filtered_doppler_noise_hz):
+                        output_data.append([t.strftime('%Y-%m-%d %H:%M:%S'), 'Doppler_noise', doppler])
+
                     axs[plot_index].set_xlabel(f'UTC Time (HH:MM:SS) on {utc_date}')
                     axs[plot_index].set_ylabel('Doppler Noise')
                     axs[plot_index].set_title('Doppler Noise vs UTC Time')
@@ -3554,28 +3558,32 @@ class PrideDopplerCharacterization:
                 if plot_fdets:
                     axs[plot_index].scatter(range(len(utc_datetime)), frequency_detection, marker='o',
                                             color='black', s=5)
+                    for t, fd in zip(utc_datetime, frequency_detection):
+                        output_data.append([t.strftime('%Y-%m-%d %H:%M:%S'), 'Freq_Detection', fd])
+
                     axs[plot_index].set_xlabel(f'UTC Time (HH:MM:SS) on {utc_date}')
                     axs[plot_index].set_ylabel('Freq Detections')
                     axs[plot_index].set_title('Frequency Detections')
-                    axs[plot_index].tick_params(axis='x', which='major', labelsize=8, rotation=45)
                     axs[plot_index].set_xticks(xticks)
                     axs[plot_index].set_xticklabels(xtick_labels, rotation=45, fontsize=8)
                     axs[plot_index].grid(True)
                     plot_index += 1
 
-                # Determine the filename
                 if save_dir:
-                    xtick_labels = [datetime.strptime(t, "%H:%M:%S") if isinstance(t, str) else t for t in xtick_labels]
                     os.makedirs(f"{save_dir}/{'_'.join(active_flags)}", exist_ok=True)
-                    if len(active_flags) == len(plot_flags):  # All flags are True
-                        filename = f"{receiving_station}_{utc_date}-{xtick_labels[0].strftime('%H%M')}-{xtick_labels[-1].strftime('%H%M')}_all.png"
-                    else:
-                        filename = f"{receiving_station}_{utc_date}-{xtick_labels[0].strftime('%H%M')}-{xtick_labels[-1].strftime('%H%M')}_{'_'.join(active_flags)}.png"
+                    filename_base = f"{receiving_station}_{utc_date}-{xtick_labels[0]}-{xtick_labels[-1]}_{'_'.join(active_flags)}"
+                    plot_path = os.path.join(f"{save_dir}/{'_'.join(active_flags)}", f"{filename_base}.png")
+                    data_path = os.path.join(f"{save_dir}/{'_'.join(active_flags)}", f"{filename_base}.txt")
 
-                    save_path = os.path.join(f"{save_dir}/{'_'.join(active_flags)}", filename)
                     plt.tight_layout()
-                    plt.savefig(save_path)
-                    print(f"Figure saved to: {save_path}")
+                    plt.savefig(plot_path)
+                    print(f"Figure saved to: {plot_path}")
+
+                    with open(data_path, 'w') as f:
+                        f.write("UTC Time, Parameter, Value\n")
+                        for row in output_data:
+                            f.write(f"{row[0]}, {row[1]}, {row[2]}\n")
+                    print(f"Data saved to: {data_path}")
 
                 if not suppress:
                     plt.show()
@@ -4022,7 +4030,6 @@ class PrideDopplerCharacterization:
             """
             station_names = [self.Utilities.ID_to_site(site_ID) for site_ID in station_ids if site_ID is not None]
             geodetic_states = [self.Utilities.site_to_geodetic_position(station_name) for station_name in station_names]
-            print(station_names)
             fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)\.complete\.r2i\.txt"
 
             plt.figure(figsize=(13, 10))  # Initialize the plot
@@ -4036,7 +4043,6 @@ class PrideDopplerCharacterization:
                     continue
 
                 receiving_station_name = match.group(1)
-                print(receiving_station_name)
 
                 times = []
                 times_strings = []
@@ -4073,7 +4079,6 @@ class PrideDopplerCharacterization:
                 min_times_strings = times_strings[np.argmin(times)]
                 max_times_strings = times_strings[np.argmax(times)]
 
-                print(geodetic_states)
                 geodetic_state = geodetic_states[i]
                 horizons_coord = {'lon': geodetic_state[2],
                                   'lat': geodetic_state[1],
@@ -4124,12 +4129,31 @@ class PrideDopplerCharacterization:
 
                     if len(files_list) == 1:  # If only one station
                         save_path = f"{save_dir}/{station_plots[0]}_elevation_plot_{utc_date}-{first_tick}-{last_tick}.png"
+                        txt_filename = os.path.join(save_dir, f"{station_plots[0]}_elevation_data_{utc_date}-{first_tick}-{last_tick}.txt")
+                        with open(txt_filename, "w") as txt_file:
+                            txt_file.write("# Time (UTC) | Elevation (degrees)\n")
+                            for t, el in zip(time_list, horizons_table['EL']):
+                                txt_file.write(f"{t.strftime('%Y-%m-%dT%H:%M:%S')} | {el:.2f}\n")
                     else:  # If multiple stations
                         save_path = f"{save_dir}/elevation_plot_{experiment_name}_{utc_date}.png"
 
                     plt.savefig(save_path)
                 except Exception as e:
                     print(f'Not a valid station: {e}')
+
+        def read_user_defined_parameters_file(self, filename):
+            data = defaultdict(list)  # Dictionary to store parameter data
+
+            with open(filename, 'r') as file:
+                reader = csv.reader(file)
+                next(reader)  # Skip header
+
+                for row in reader:
+                    parameter = (row[1].strip())
+                    value = float(row[2])
+                    data[parameter].append(value)
+
+            return data
 
     class ProcessVexFiles:
         def __init__(self, process_fdets, utilities):
