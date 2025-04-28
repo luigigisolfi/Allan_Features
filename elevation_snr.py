@@ -1,4 +1,3 @@
-from tudatpy.kernel.data import doppler_noise
 from pride_characterization_library import PrideDopplerCharacterization
 import os
 from collections import defaultdict
@@ -6,6 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 from scipy.interpolate import interp1d
+
+"""
+This script was created to check the dependence of SNR on elevation, 
+but the fact that Horizons does not allow for ephemeris to be retrieved at steps < 1 min, together with the fact that - for some stations -
+the elevation plot has a maximum value, limits its applications.
+Nevertheless, it might still be useful in some occasions, so we keep it. 
+"""
 
 def generate_random_color():
     """Generates a random, well-spaced color in hexadecimal format."""
@@ -19,11 +25,7 @@ process_fdets = pride.ProcessFdets()
 utilities = pride.Utilities()
 analysis = pride.Analysis(process_fdets, utilities)
 
-#experiments_to_analyze = {'mex': ['gr035'], 'juice': ['ec094a','ec094b'], 'min': ['ed045a','ed045c','ed045d','ed045e','ed045f'], 'mro': ['ec064']}
-#experiments_to_analyze = { 'min': ['ed045a','ed045c', 'ed045d','ed045e', 'ed045f']}
 experiments_to_analyze = {'juice': ['ec094a', 'ec094b']}
-#experiments_to_analyze = {'vex': ['v140106','v140109','v140110','v140113','v140118','v140119','v140120','v140123','v140126','v140127']} #vex jan 2014
-#experiments_to_analyze = {'vex': ['v140228', 'v140224', 'v140221', 'v140217', 'v140214', 'v140210', 'v140207', 'v140204', 'v140203']} #vex feb 2014
 mean_rms_user_defined_parameters = defaultdict(list)
 mean_elevations = defaultdict(list)
 color_dict = defaultdict(list)

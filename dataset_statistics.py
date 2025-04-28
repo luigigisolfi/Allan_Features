@@ -1,3 +1,18 @@
+"""
+This script analyzes radio science experiments for JUICE
+computing and plotting Key Performance Indicators (KPIs) such as mean Signal-to-Noise Ratio (SNR),
+rms SNR, mean Doppler noise, and mean elevation angle across multiple ground stations.
+
+The workflow includes:
+- Loading user-defined parameters (SNR, Doppler noise) and elevation data
+- Filtering based on SNR and Doppler noise thresholds
+- Computing weighted and unweighted averages
+- Visualizing results in a set of subplots
+
+Requirements:
+    - The data files where the KPIs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
+"""
+
 from pride_characterization_library import PrideDopplerCharacterization
 import os
 from collections import defaultdict
@@ -5,48 +20,54 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 
+#################################################################################
 def generate_random_color():
     """Generates a random, well-spaced color in hexadecimal format."""
     r = random.randint(0, 220)  # Avoid extremes (too dark/light)
     g = random.randint(0, 220)
     b = random.randint(0, 220)
     return "#{:02x}{:02x}{:02x}".format(r, g, b)
+#################################################################################
 
-pride = PrideDopplerCharacterization()
-process_fdets = pride.ProcessFdets()
-utilities = pride.Utilities()
-analysis = pride.Analysis(process_fdets, utilities)
+pride = PrideDopplerCharacterization() # create PRIDE Object
+process_fdets = pride.ProcessFdets() # create Process Fdets Object
+utilities = pride.Utilities() # create Utilities Object
+analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
-experiments_to_analyze = {
-    'mex': ['gr035'],
-    'juice': ['ec094a','ec094b'],
-    'min': ['ed045a','ed045c','ed045d','ed045e','ed045f'],
-    'mro': ['ec064'],
-    'vex': ['v140106','v140109','v140110','v140113','v140118','v140119','v140120','v140123','v140126','v140127']
-}
+# Select the experiment(s) for which data analysis will be performed
+experiments_to_analyze = {'juice': ['ec094a','ec094b']} # we only add juice, but the script allows for every available mission in the PRIDE dataset
 
+# Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
 mean_elevations = defaultdict(list)
 color_dict = defaultdict(list)
+
+# Loop through missions and experiments
 for mission_name, experiment_names in experiments_to_analyze.items():
     for experiment_name in experiment_names:
+        # Assign color (fixed red for 'vex', random otherwise)
         if mission_name == 'vex':
             color_dict[experiment_name] = 'red'
-
         else:
             color_dict[experiment_name] = generate_random_color()
+
+        # Define paths for input and output directories
         fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/input/complete/'
         output_dir = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/output'
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
             continue
+
+        # Paths for user-defined parameters and elevation data
         user_defined_parameters_dir = os.path.join(output_dir, 'user_defined_parameters/snr_noise_fdets')
         elevation_dir = os.path.join(output_dir, 'elevation')
+
+        # Analyze user-defined parameter files
         for file in os.listdir(user_defined_parameters_dir):
             station_code = file.split('_')[0]
-            print(mission_name, station_code)
+
+            # Manual filtering or renaming of station codes
             if mission_name == 'juice' and (station_code == 'O6'): # these are filtered out manually cause we have good reasons
-                print(experiment_name, 'filtering out Onsala')
                 continue
             elif station_code == 'Ib':
                 station_code = 'Ir'
@@ -57,12 +78,14 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             elif mission_name == 'min' and (station_code == 'Ir'): # these are filtered out manually cause we have good reasons
                 continue
 
+            # Process only TXT files
             if file.endswith('.txt'):
                 parameters_dictionary = analysis.read_user_defined_parameters_file(os.path.join(user_defined_parameters_dir, file))
 
                 snr_array = np.array(parameters_dictionary['SNR'])
                 doppler_noise_array = np.array(parameters_dictionary['Doppler_noise'])
 
+                # Apply mission-specific SNR and Doppler noise filtering
                 if mission_name in ['juice', 'mex', 'vex']:
                     filter_snr = snr_array > 100
                     if experiment_name == 'ec094a' and station_code in ['Wz']:
@@ -99,12 +122,15 @@ for mission_name, experiment_names in experiments_to_analyze.items():
                         filtered_snr = snr_array[filter_snr]
                         filtered_doppler_noise = doppler_noise_array[filter_snr]
 
+                # Save mean and RMS values
                 mean_rms_user_defined_parameters[experiment_name].append({station_code:
                                                      {'mean_snr': np.mean(filtered_snr),
                                                       'rms_snr': np.std(filtered_snr),
                                                       'mean_doppler_noise': np.mean(filtered_doppler_noise),
                                                       'rms_doppler_noise': np.std(filtered_doppler_noise),
                                                       }})
+
+        # Analyze elevation files
         for file in os.listdir(elevation_dir):
             station_code = file.split('_')[0]
             if station_code == 'Ib':
@@ -114,18 +140,21 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             if file.endswith('.txt'):
                 mean_elevation = analysis.get_mean_elevation_from_file(os.path.join(elevation_dir, file))
 
-                # Find and update the correct dictionary entry for this station
+
+                # Update mean elevation in the main dictionary
                 for entry in mean_rms_user_defined_parameters[experiment_name]:
                     if station_code in entry:  # If station exists, update it
                         entry[station_code]['mean_elevation'] = mean_elevation
                         break  # No need to continue searching
 
+# Initialize labels and plot
 labels_snr = set()
 labels_doppler = set()
 labels_snr_vs_noise = set()
 fig, axes = plt.subplots(4, 1, figsize=(10, 15), sharex=False)
 ax1, ax2, ax3, ax4 = axes  # Assign subplots
 
+# Compute weighted and unweighted averages
 for experiment_name in mean_rms_user_defined_parameters.keys():
     # compute the mean of KPIs among all stations belonging to the experiment (table 5 in Vidhya's paper)
     aggregate = defaultdict(lambda: {'sum': 0, 'count': 0})
@@ -153,14 +182,9 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
 
     # Compute the weighted mean values
     mean_values_new = {key: (aggregate_weighted[key]['sum'] / aggregate_weighted[key]['count'])*1000 for key in aggregate_weighted}
-    if experiment_name == 'ec094b':
-        print(aggregate)
-        print('ye', mean_values_old)
-        print('ye', mean_values_new)
     merged_dict = {**mean_values_old, **mean_values_new}
-    print('EXPERIMENT:', experiment_name)
-    print(merged_dict)
 
+# Plotting results
 for experiment_name in mean_rms_user_defined_parameters.keys():
     for station_dict in mean_rms_user_defined_parameters[experiment_name]:
         for station in station_dict.keys():
@@ -232,7 +256,7 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                 ax4.annotate(station, (mean_elevation, mean_snr), fontsize=10, alpha=0.7)
 
 
-# Formatting SNR subplot
+# Final plot adjustments
 ax1.set_ylabel('SNR [dB]')
 ax1.set_xlabel(f'Station Code')
 ax1.grid()
