@@ -65,7 +65,7 @@ Example Usage:
 
 3. Perform baseband frequency correction for a set of files:
     ```
-    python script.py file1.txt file2.txt --correct_baseband --experiment_name EXP001
+    python old2new_fdets.py file1.txt file2.txt --correct_baseband --experiment_name EXP001
     ```
 
 Requirements:

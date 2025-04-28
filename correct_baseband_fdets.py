@@ -68,11 +68,19 @@ old_files = [shutil.copy(file, f'{file}'.replace("txt", "old")) for file in file
 # Loop through each file and process it
 for file in files:
     try:
-        mission_name = re.sub(r'\d', '', file.split('/')[-1].split('.')[1])
 
-        print(experiment_name)
+        if len(utilities.get_mission_from_experiment(experiment_name)) > 1:
+            print(utilities.get_mission_from_experiment(experiment_name))
+            for mission in utilities.get_mission_from_experiment(experiment_name):
+                if mission in file:
+                    mission_name = mission
+                    break
 
-        if mission_name.lower() != utilities.get_mission_from_experiment(experiment_name):
+        else:
+            mission_name = re.sub(r'\d', '', file.split('/')[-1].split('.')[1])
+
+        print('mission name', mission_name)
+        if mission_name.lower() not in utilities.get_mission_from_experiment(experiment_name):
             print(f'Wrong experiment name: {experiment_name} for mission: {mission_name}. Aborting...')
             exit()
 
@@ -109,6 +117,9 @@ for file in files:
             #baseband_patterns = [r"Base frequency: \d+(.\d+)? MHz", r"Base frequency: \d+(.\d+)? MHz dF: \d+(.\d+) Hz dT: \d+(.\d+) s"]
             baseband_patternssss = [r"Base frequency: (?!0\.00)\d+(\.\d+)? MHz(?: dF: \d+(\.\d+)? Hz dT: \d+(\.\d+)? s)?"]
             match_flag = False
+
+            print(baseband_patternssss)
+            print(fdets_header[1])
 
             try:
                 match = re.match(baseband_patternssss, fdets_header[1])

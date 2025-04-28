@@ -168,7 +168,7 @@ class PrideDopplerCharacterization:
                 - Returns the station name as a string if a match is found.
                 - Returns `None` if the file name does not match the expected pattern.
             """
-            fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)\.complete\.r2i\.txt"
+            fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
             match = re.search(fdets_filename_pattern, fdets_file_name)
             if match:
                 self.receiving_station_name = match.group(1)
@@ -288,7 +288,7 @@ class PrideDopplerCharacterization:
 
             """
             print(f'Extracting Parameters for filename: {filename}...')
-            fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)\.complete\.r2i\.txt"
+            fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
 
             match = re.search(fdets_filename_pattern, filename)
             if match:
@@ -493,7 +493,7 @@ class PrideDopplerCharacterization:
             extracted_data_list =list()
             directory_path = fdets_folder_path
             for file in os.listdir(directory_path):
-                if file.startswith('Fdets') and file.endswith('.txt'):
+                if file.startswith('Fdets') and file.endswith('r2i.txt'):
                     file_path = os.path.join(directory_path, file)
 
                     extracted_parameters = self.extract_parameters(
@@ -533,7 +533,7 @@ class PrideDopplerCharacterization:
 
             "m0303": {
                 "mission_name": "mex",
-                "vex_file_name": "m0303.vex",
+                "vex_file_name": "m0303.vix",
                 "exper_description": "mars express tracking test",
                 "exper_nominal_start": "2010y062d20h00m00s",
                 "exper_nominal_stop": "2010y062d21h59m00s"
@@ -541,7 +541,7 @@ class PrideDopplerCharacterization:
 
             "m0325": {
                 "mission_name": "mex",
-                "vex_file_name": "m0325.vex",
+                "vex_file_name": "m0325.vix",
                 "exper_description": "mars express tracking test",
                 "exper_nominal_start": "2012y085d13h00m00s",
                 "exper_nominal_stop": "2012y085d13h59m00s"
@@ -549,7 +549,7 @@ class PrideDopplerCharacterization:
 
             "m0327": {
                 "mission_name": "mex",
-                "vex_file_name": "m0327.vex",
+                "vex_file_name": "m0327.vix",
                 "exper_description": "mars express tracking test",
                 "exper_nominal_start": "2012y087d01h30m00s",
                 "exper_nominal_stop": "2012y087d02h49m00s"
@@ -557,7 +557,7 @@ class PrideDopplerCharacterization:
 
             "m0403": {
                 "mission_name": "mex",
-                "vex_file_name": "m0403.vex",
+                "vex_file_name": "m0403.vix",
                 "exper_description": "mars express tracking test",
                 "exper_nominal_start": "2012y087d01h30m00s",
                 "exper_nominal_stop": "2012y087d02h49m00s"
@@ -601,7 +601,7 @@ class PrideDopplerCharacterization:
 
             "ec094a": {
                 "mission_name": "juice",
-                "vex_file_name": "ec094a.vex",
+                "vex_file_name": "ec094a.vix",
                 "exper_description": "JUICE tracking",
                 "exper_nominal_start": "2023y292d14h00m00s",
                 "exper_nominal_stop": "2023y292d16h00m00s"
@@ -609,27 +609,27 @@ class PrideDopplerCharacterization:
 
             "ec094b": {
                 "mission_name": "juice",
-                "vex_file_name": "ec094b.vex",
+                "vex_file_name": "ec094b.vix",
                 "exper_description": "JUICE tracking",
                 "exper_nominal_start": "2024y066d05h30m00s",
                 "exper_nominal_stop": "2024y066d07h30m00s"
             },
 
             "ec064": {
-                "mission_name": "mro_tgo_mex",
-                "vex_file_name": "ec064.vex",
+                "mission_name": ["mro", 'mex', 'tgo'],
+                "vex_file_name": "ec064.vix",
                 "experiment_description": "MRO-TGO-MEX tracking",
                 "exper_nominal_start": "2020y053d01h30m00s",
                 "exper_nominal_stop": "2020y053d03h00m00s"
             },
 
-            "v0314": {
+            "v140314": {
                 "mission_name": "vex",
-                "vex_file_name": "v0314.vex",
+                "vex_file_name": "v0314.vix",
                 "experiment_description": "VEX tracking",
                 "exper_nominal_start": "2014y073d08h30m00s",
                 "exper_nominal_stop": "2014y073d11h29m00s"
-            }
+            },
 
         }
 
@@ -846,6 +846,48 @@ class PrideDopplerCharacterization:
         }
 
 
+            self.antenna_diameters = {
+                'Cd': 30,   # Ceduna
+                'Hb': 12,   # Hobart 12m
+                'Yg': 12,   # Yarragadee 12m
+                'Ke': 12,   # Katherine 12m
+                'Ww': 12,   # Warkworth
+                'Ym': 32,   # Yamaguchi 32m
+                'T6': 65,   # Tianma 65m
+                'Km': 40,   # Kunming
+                'Ku': 21,   # KVN Ulsan
+                'Bd': 32,   # Badary
+                'Ur': 25,   # Urumqi
+                'Zc': 32,   # Zelenchukskaya
+                'Hh': 26,   # Hartebeesthoek
+                'Wz': 20,   # Wettzell
+                'Sv': 32,   # Svetloe
+                'Mc': 32,   # Medicina
+                'Wb': 25,   # Westerbork (single dish)
+                'On': 60,   # Onsala 60m
+                'O6': 60,   # Onsala 60m
+                'Ys': 40,   # Yebes 40m
+                'Sc': 25,   # VLBA Saint Croix
+                'Hn': 25,   # VLBA Hancock
+                'Nl': 25,   # VLBA North Liberty
+                'Fd': 25,   # VLBA Fort Davis
+                'La': 25,   # VLBA Los Alamos
+                'Kp': 25,   # VLBA Kitt Peak
+                'Pt': 25,   # VLBA Pie Town
+                'Br': 25,   # VLBA Brewster
+                'Ov': 25,   # VLBA Owens Valley
+                'Mk': 25,   # VLBA Mauna Kea
+                'Ht': 15,   # HartRAO 15m
+                'Mh': 14,   # Metsähovi
+                'Ef': 100,  # Effelsberg
+                'Tr': 32,   # Torun
+                'Nt': 32,   # Noto
+                'Ir': 32,   # Irbene
+                'Ib': 32,   # Irbene
+                'Mp': 15,   # Siding Spring
+                'Wn': 13    # Wettzell 13m
+            }
+
         ########################################################################################################################################
         ########################################################################################################################################
         def mjd_to_utc(self,mjd):
@@ -922,6 +964,14 @@ class PrideDopplerCharacterization:
 
             "min":{
                 "target": "2018-042A"
+            },
+
+            "mro":{
+                "target": "2005-029A"
+            },
+
+            "vex":{
+                "target": "2005-045A"
             }
 
             }
@@ -1177,7 +1227,8 @@ class PrideDopplerCharacterization:
                 'TORUN': 'Tr',
                 'NOTO': 'Nt',
                 'IRBENE': 'Ir',
-                'SIDINGSPRING': 'Mp'
+                'SIDINGSPRING': 'Mp',
+                'WETTZ13N': 'Wn'
             }
 
             # Convert input to uppercase for case-insensitive matching
@@ -1234,7 +1285,8 @@ class PrideDopplerCharacterization:
                 'Nt': 'NOTO',
                 'Ir': 'IRBENE',
                 'Ib': 'IRBENE',
-                'Mp': 'SIDINGSPRING'
+                'Mp': 'SIDINGSPRING',
+                'Wn': 'WETTZ13N'
             }
 
             # Return the corresponding site name or None if the site_ID is not found
@@ -2331,7 +2383,6 @@ class PrideDopplerCharacterization:
 
             return site_to_geodetic_position_mapping.get(station_name, None)
 
-
         def average_scan_lines(self, input_folder, fdets_file, time_interval_seconds, output_folder):
             """
             Averages values of a time-series file over a given time interval. However, this is not good whern it comes to averaging the noise,
@@ -2351,7 +2402,7 @@ class PrideDopplerCharacterization:
             header_written = False
 
             # Corrected regex pattern
-            file_pattern = r"Fdets\.(\w+)(\d{4}\.\d{2}\.\d{2})(\.\w+\.complete\.r2i\.txt)"
+            file_pattern = r"Fdets\.(\w+)(\d{4}\.\d{2}\.\d{2})(\.\w+(?:\.complete)?\.r2i\.txt)"
             match = re.match(file_pattern, fdets_file)
             if not match:
                 raise ValueError("Error in average_values_by_time: filename does not match expected pattern")
@@ -2406,7 +2457,6 @@ class PrideDopplerCharacterization:
 
         def split_scan_by_time(self, input_folder, fdets_file, time_interval_minutes, output_folder):
 
-            print(fdets_file)
             """
             Splits a time-series file into segments based on a given time interval.
 
@@ -2425,7 +2475,7 @@ class PrideDopplerCharacterization:
             input_file = os.path.join(input_folder, fdets_file)
 
             # Corrected regex pattern
-            file_pattern = r"Fdets\.(\w+)(\d{4}\.\d{2}\.\d{2})(\.\w+\.complete\.r2i\.txt)"
+            file_pattern = r"Fdets\.(\w+)(\d{4}\.\d{2}\.\d{2})(\.\w+(?:\.complete)?\.r2i\.txt)"
 
             match = re.match(file_pattern, fdets_file)
             if not match:
@@ -2505,7 +2555,6 @@ class PrideDopplerCharacterization:
                 if match:
                     station_name = match.group(4)  # Extract station name (2 letters, e.g., Ef)
                     scan_number = match.group(5)
-                    print(station_name, scan_number)
 
                     # Add the file and its scan number to the corresponding station's list
                     station_files[station_name].append((file, str(scan_number)))  # Store as tuple (file, scan_number)
@@ -2525,8 +2574,6 @@ class PrideDopplerCharacterization:
                 output_filename = output_filename.replace('.r2i.txt', '.complete.r2i.txt')
                 # Create the complete output path
                 output_filename = os.path.join(output_folder, output_filename)
-
-                print(output_filename)
 
                 # Open the output file in write mode
                 with open(output_filename, 'w') as output_file:
@@ -2576,7 +2623,7 @@ class PrideDopplerCharacterization:
             return None
 
 
-        def get_vex_file_path(self, experiment_name):
+        def get_vex_file_path(self, experiment_name, mission_name):
 
             """
             Constructs the file path for a VEX file associated with a specific experiment.
@@ -2596,7 +2643,7 @@ class PrideDopplerCharacterization:
             vex_file_path = get_vex_file_path('experiment_1')
             """
             main_vex_folder = "vex_files"
-            vex_file_mission_folder = self.experiments[experiment_name]['mission_name']
+            vex_file_mission_folder = mission_name
             vex_file_name = self.experiments[experiment_name]['vex_file_name']
 
             vex_file_path = os.path.join(main_vex_folder, vex_file_mission_folder, vex_file_name)
@@ -2608,6 +2655,7 @@ class PrideDopplerCharacterization:
                 if experiment == experiment_name:
                     mission_name = values['mission_name']
                     return mission_name
+
 ########################################################################################################################################
 ########################################################################################################################################
 
@@ -2942,6 +2990,7 @@ class PrideDopplerCharacterization:
                 color_regions (bool, optional): Enables color-coding regions based on error bounds.
 
             """
+
             if not isinstance(extracted_data_list, list):
                 extracted_data_list = [extracted_data_list]  # Ensure list format
 
@@ -2967,12 +3016,12 @@ class PrideDopplerCharacterization:
 
                 # Extract Data
                 receiving_station_name = extracted_data['receiving_station_name']
+                #if receiving_station_name in ['Mh', 'Ht']: # for MEX (Vidhya's paper)
+                #    continue
                 utc_datetime = extracted_data['utc_datetime']
-                signal_to_noise = extracted_data['signal_to_noise']
                 doppler_noise_hz = extracted_data['doppler_noise_hz']
                 frequency_detection = extracted_data['frequency_detection']
                 base_frequency = extracted_data['base_frequency']
-                utc_date = extracted_data['utc_date']
 
                 # Compute Sampling Rate
                 t_jd = np.array([Time(time).jd for time in utc_datetime])
@@ -3039,20 +3088,21 @@ class PrideDopplerCharacterization:
             if not suppress:
                 plt.show()
 
-        def get_all_stations_madev_plot(self, fdets_folder_path,  experiment_name, tau_min = None, tau_max = None, suppress = False, plot_madev_only = True, save_dir = None):
+        def get_all_stations_madev_plot(self, fdets_folder_path, experiment_name, extracted_parameters_list = None, tau_min = None, tau_max = None, suppress = False, plot_madev_only = True, save_dir = None):
 
-            extracted_parameters_list =list()
-            directory_path = fdets_folder_path
-            for file in os.listdir(directory_path):
-                if file.startswith('Fdets') and file.endswith('.txt'):
-                    file_path = os.path.join(directory_path, file)
+            if not extracted_parameters_list:
+                extracted_parameters_list =list()
+                directory_path = fdets_folder_path
+                for file in os.listdir(directory_path):
+                    if file.startswith('Fdets') and file.endswith('.txt'):
+                        file_path = os.path.join(directory_path, file)
 
-                    extracted_parameters = self.ProcessFdets.extract_parameters(
-                        file_path,
-                        remove_outliers = True
-                    )
+                        extracted_parameters = self.ProcessFdets.extract_parameters(
+                            file_path,
+                            remove_outliers = True
+                        )
 
-                    extracted_parameters_list.append(extracted_parameters)
+                        extracted_parameters_list.append(extracted_parameters)
 
             self.plot_madev_stations(
                 extracted_parameters_list,
@@ -3354,7 +3404,6 @@ class PrideDopplerCharacterization:
                     return (self.allan_index)
             else:
                 print(f'Cannot compute Allan Index due to the reasons explained above. Skipping ...')
-
 
         ########################################################################################################################################
         ########################################################################################################################################
@@ -4030,7 +4079,7 @@ class PrideDopplerCharacterization:
             """
             station_names = [self.Utilities.ID_to_site(site_ID) for site_ID in station_ids if site_ID is not None]
             geodetic_states = [self.Utilities.site_to_geodetic_position(station_name) for station_name in station_names]
-            fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)\.complete\.r2i\.txt"
+            fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
 
             plt.figure(figsize=(13, 10))  # Initialize the plot
             station_plots = []  # List to store station names for saving plot filenames
@@ -4154,6 +4203,36 @@ class PrideDopplerCharacterization:
                     data[parameter].append(value)
 
             return data
+
+        def get_mean_elevation_from_file(self, filename):
+            elevations = []  # List to store elevation values
+
+            with open(filename, 'r') as file:
+                reader = csv.reader(file, delimiter='|')
+                next(reader)  # Skip header
+
+                for row in reader:
+                    if len(row) < 2:  # Ensure there's an elevation value
+                        continue
+                    elevation = float(row[1].strip())  # Convert to float
+                    elevations.append(elevation)
+
+            return np.mean(elevations) if elevations else None  # Avoid error on empty file
+
+        def get_elevations_from_file(self, filename):
+            elevations = []  # List to store elevation values
+
+            with open(filename, 'r') as file:
+                reader = csv.reader(file, delimiter='|')
+                next(reader)  # Skip header
+
+                for row in reader:
+                    if len(row) < 2:  # Ensure there's an elevation value
+                        continue
+                    elevation = float(row[1].strip())  # Convert to float
+                    elevations.append(elevation)
+
+            return elevations if elevations else None  # Avoid error on empty file
 
     class ProcessVexFiles:
         def __init__(self, process_fdets, utilities):
@@ -4475,7 +4554,7 @@ class PrideDopplerCharacterization:
             return dict(stations_dict)
 
 
-        def get_baseband_frequency(self, mission, experiment_name, fdets_file):
+        def get_baseband_frequency(self, mission_name, experiment_name, fdets_file):
 
             """
             Extracts the baseband frequency for a given station from a VEX file.
@@ -4498,14 +4577,14 @@ class PrideDopplerCharacterization:
             baseband_frequency = get_baseband_frequency('JUICE', 'experiment_1', 'fdets_data_file.txt')
             """
             station_fdets = fdets_file.split('/')[-1].split('.')[4]
-            file_path = self.Utilities.get_vex_file_path(experiment_name)
+            file_path = self.Utilities.get_vex_file_path(experiment_name, mission_name)
             result = self.parse_vex_freq_block(file_path)
-            mas_x_band = self.Utilities.spacecraft_data[mission]['frequency_MHz']
+            mas_x_band = self.Utilities.spacecraft_data[mission_name]['frequency_MHz']
 
             if station_fdets not in result.keys():
                 print(f'Fdets station: {station_fdets} not found in the vex file $FREQ block stations:\n'
                       f'{result.keys()}.\n')
-                frequencies_file_name = f'baseband_frequencies/{mission}/{experiment_name}_baseband_frequencies.txt'
+                frequencies_file_name = f'baseband_frequencies/{mission_name}/{experiment_name}_baseband_frequencies.txt'
                 print(f'Trying retrieval from baseband frequencies file: {frequencies_file_name}...')
                 if os.path.exists(frequencies_file_name):
                     with open(frequencies_file_name, 'r') as f:
@@ -4534,7 +4613,7 @@ class PrideDopplerCharacterization:
 
             return(baseband_frequency)
 
-        def get_baseband_frequencies_file(self, mission, experiment_name):
+        def get_baseband_frequencies_file(self, mission_name, experiment_name):
 
             """
             Retrieves the baseband frequencies for all stations from a VEX file and writes them into a handy file.
@@ -4558,11 +4637,11 @@ class PrideDopplerCharacterization:
             baseband_frequencies, x_band = get_baseband_frequencies_file('JUICE', 'experiment_1')
             """
 
-            file_path = self.Utilities.get_vex_file_path(experiment_name)
+            file_path = self.Utilities.get_vex_file_path(experiment_name, mission_name)
             result = self.parse_vex_freq_block(file_path)
-            mas_x_band = self.Utilities.spacecraft_data[mission]['frequency_MHz']
+            mas_x_band = self.Utilities.spacecraft_data[mission_name]['frequency_MHz']
 
-            baseband_frequency = {mission: {}}
+            baseband_frequency = {mission_name: {}}
             # Print parsed dictionary
             for station, channels in result.items():
                 for channel in channels:
@@ -4574,19 +4653,20 @@ class PrideDopplerCharacterization:
                     float_bandwidth = float(bandwidth_string.replace(" MHz", ""))
                     if  float_frequency < mas_x_band < float_frequency + float_bandwidth :
                         # create baseband_frequency mission dictionary with baseband frequency for each station
-                        baseband_frequency[mission][station] = np.round(float_frequency,1)
+                        baseband_frequency[mission_name][station] = np.round(float_frequency,1)
 
             # Write to file
-            output_file = f"baseband_frequencies/{mission}/{experiment_name}_baseband_frequencies.txt"
+            os.makedirs(f'baseband_frequencies/{mission_name}', exist_ok = True)
+            output_file = f"baseband_frequencies/{mission_name}/{experiment_name}_baseband_frequencies.txt"
             with open(output_file, 'w') as f:
                 # Write the header
-                f.write(f"# Mission: {mission}\n")
+                f.write(f"# Mission: {mission_name}\n")
                 f.write(f"# X-band Observable: {mas_x_band}\n")
                 f.write(f"# VEX file name: {file_path}\n")
                 f.write("# Station | Baseband Frequency (MHz)\n\n")
 
                 # Write the station and baseband frequencies
-                for station, freq in baseband_frequency[mission].items():
+                for station, freq in baseband_frequency[mission_name].items():
                     f.write(f"{station}: {freq}\n")
 
     class FormatFdets:
@@ -4674,9 +4754,7 @@ class PrideDopplerCharacterization:
                         if station in line:
                             find_station_flag = True
                             missing_station_frequency = line.split()[1]
-                            print('missing_station frequency', missing_station_frequency)
                             with open(frequencies_file_name, 'a') as a:
-                                print('appending missing station')
                                 a.write(f'{missing_station}: {missing_station_frequency} # assigned, missing from $FREQ block\n')
                                 f.close()
                                 break
