@@ -1,3 +1,7 @@
+# %%
+# %matplotlib inline
+
+# %% [markdown]
 """
 This script analyzes radio science experiments for JUICE
 computing and plotting Key Performance Indicators (KPIs) such as mean Signal-to-Noise Ratio (SNR),
@@ -13,6 +17,7 @@ Requirements:
     - The data files where the KPIs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
 """
 
+# %%
 from pride_characterization_library import PrideDopplerCharacterization
 import os
 from collections import defaultdict
@@ -20,15 +25,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 
-#################################################################################
+# %%
 def generate_random_color():
     """Generates a random, well-spaced color in hexadecimal format."""
     r = random.randint(0, 220)  # Avoid extremes (too dark/light)
     g = random.randint(0, 220)
     b = random.randint(0, 220)
     return "#{:02x}{:02x}{:02x}".format(r, g, b)
-#################################################################################
-
+# %%
 pride = PrideDopplerCharacterization() # create PRIDE Object
 process_fdets = pride.ProcessFdets() # create Process Fdets Object
 utilities = pride.Utilities() # create Utilities Object
@@ -52,8 +56,8 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             color_dict[experiment_name] = generate_random_color()
 
         # Define paths for input and output directories
-        fdets_folder_path = 'small_dataset/juice/ec094b/input/complete/'
-        output_dir = 'small_dataset/juice/ec094b/input/complete/output/'
+        fdets_folder_path = '../small_dataset/juice/ec094b/input/complete/'
+        output_dir = '../small_dataset/juice/ec094b/output/'
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
             continue
