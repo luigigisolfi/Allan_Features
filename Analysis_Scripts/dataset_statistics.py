@@ -35,7 +35,7 @@ utilities = pride.Utilities() # create Utilities Object
 analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
-experiments_to_analyze = {'juice': ['ec094a','ec094b']} # we only add juice, but the script allows for every available mission in the PRIDE dataset
+experiments_to_analyze = {'juice': ['ec094b']} # we only add juice, but the script allows for every available mission in the PRIDE dataset
 
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
@@ -52,8 +52,8 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             color_dict[experiment_name] = generate_random_color()
 
         # Define paths for input and output directories
-        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/input/complete/'
-        output_dir = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/output'
+        fdets_folder_path = 'small_dataset/juice/ec094b/input/complete/'
+        output_dir = 'small_dataset/juice/ec094b/input/complete/output/'
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
             continue
@@ -276,6 +276,8 @@ ax3.grid()
 ax4.set_xlabel('Elevation [deg]')
 ax4.set_ylabel('SNR [dB]')
 ax4.grid()
+
+plt.savefig(output_dir + experiment_name + '_dataset_statistics.png')
 
 plt.tight_layout(pad=2)
 plt.show()

@@ -3084,7 +3084,7 @@ class PrideDopplerCharacterization:
             plt.tight_layout()
 
             if save_dir:
-                plt.savefig(save_dir)
+                plt.savefig(save_dir + experiment_name + '_mad.png')
             if not suppress:
                 plt.show()
 
@@ -3640,7 +3640,7 @@ class PrideDopplerCharacterization:
     ########################################################################################################################################
 ########################################################################################################################################
 
-        def get_doppler_noise_statistics(self, extracted_data_list, experiment_name, save_dir=None, suppress=False, remove_outliers = True):
+        def get_doppler_noise_statistics(self, extracted_data_list, experiment_name, save_dir=None, suppress=False, remove_outliers = False):
             """
             Plots histograms of Doppler noise for each station, grouped by date.
 
@@ -3678,17 +3678,18 @@ class PrideDopplerCharacterization:
                 colors = cm.get_cmap('tab10')(np.linspace(0, 1, len(station_data_list)))  # Unique colors per station data
 
                 for i, extracted_data in enumerate(station_data_list):
-                    utc_datetime = extracted_data['utc_datetime']
+                    utc_datetime = np.array(extracted_data['utc_datetime'])
                     doppler_noise_hz = np.array(extracted_data['doppler_noise_hz'])
-
 
                     for date in unique_dates_list:
                         if remove_outliers:
-                            lower_percentile = np.percentile(np.array(doppler_noise_hz), 5)  # 5th percentile
-                            upper_percentile = np.percentile(np.array(doppler_noise_hz), 95)  # 95th percentile
-                            mask = (doppler_noise_hz >= lower_percentile) & (doppler_noise_hz <= upper_percentile)
-                            date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in np.array(utc_datetime)[mask]])
-                            doppler_noise_hz = doppler_noise_hz[mask]
+                            lower_percentile = np.percentile(doppler_noise_hz, 5)
+                            upper_percentile = np.percentile(doppler_noise_hz, 95)
+                            outlier_mask = (doppler_noise_hz >= lower_percentile) & (doppler_noise_hz <= upper_percentile)
+                            utc_datetime = utc_datetime[outlier_mask]
+                            doppler_noise_hz = doppler_noise_hz[outlier_mask]
+
+                            date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
 
                         else:
                             date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
@@ -3715,7 +3716,7 @@ class PrideDopplerCharacterization:
                 if not suppress:
                     plt.show()
 
-        def get_snr_statistics(self, extracted_data_list, experiment_name, save_dir=None, suppress=False, remove_outliers = True):
+        def get_snr_statistics(self, extracted_data_list, experiment_name, save_dir=None, suppress=False, remove_outliers = False):
             """
             Plots histograms of SNR for each station, grouped by date.
 
@@ -3976,7 +3977,7 @@ class PrideDopplerCharacterization:
             if not suppress:
                 plt.show()
 
-        def get_all_stations_statistics(self, fdets_folder_path,  experiment_name, extracted_parameters_list = None, doppler_noise_statistics = False, snr_statistics = False, suppress = True, save_dir = None):
+        def get_all_stations_statistics(self, fdets_folder_path,  experiment_name, extracted_parameters_list = None, doppler_noise_statistics = False, snr_statistics = False, remove_outliers = False, suppress = True, save_dir = None):
 
 
             """
@@ -4042,7 +4043,8 @@ class PrideDopplerCharacterization:
                     extracted_parameters_list,
                     experiment_name = experiment_name,
                     save_dir = save_dir,
-                    suppress = suppress)
+                    suppress = suppress,
+                    remove_outliers= remove_outliers)
 
             if snr_statistics:
 
@@ -4062,7 +4064,9 @@ class PrideDopplerCharacterization:
                     extracted_parameters_list,
                     experiment_name = experiment_name,
                     save_dir = save_dir,
-                    suppress = suppress)
+                    suppress = suppress,
+                    remove_outliers= remove_outliers
+                )
 
         def get_elevation_plot(self, files_list, target, station_ids, experiment_name, suppress=False, save_dir=None):
             """
