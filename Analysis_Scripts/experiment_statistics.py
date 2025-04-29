@@ -35,14 +35,14 @@ analysis = pride.Analysis(process_fdets, utilities)
 
 # Define experiments to analyze
 experiments_to_analyze = {
-    'juice': ['ec094a', 'ec094b']
+    'juice': ['jc230417']
 }
 
 # Loop over missions and experiments
 for mission_name, experiment_names in experiments_to_analyze.items():
     for experiment_name in experiment_names:
-        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/input/complete/'
-        output_dir = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/output'
+        fdets_folder_path = 'small_dataset/juice/ec094b/input/complete/'
+        output_dir = 'small_dataset/juice/ec094b/input/complete/output'
         horizons_target = utilities.mission_name_to_horizons_target(mission_name)
         print(f'Performing Statistical Analysis for mission: {mission_name} (Horizons Code: {horizons_target})...')
 
@@ -94,6 +94,7 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             extracted_parameters_list= extracted_data_list,
             doppler_noise_statistics = True,
             snr_statistics= True,
+            remove_outliers = True,
             save_dir = os.path.join(output_dir, 'statistics')
         )
 
