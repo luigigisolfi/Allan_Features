@@ -1,3 +1,4 @@
+# %%
 """
 Script to perform statistical analysis on PRIDE Doppler FDETS files.
 
@@ -12,37 +13,41 @@ This script:
 
 This specific demo is configured to analyze:
 - Mission: 'juice'
-- Experiment: 'ec094a'
+- Experiment: 'ec094b'
 
 Input folder structure assumed:
-    /dataset/{mission_name}/{experiment_name}/input/complete/
+    /{dataset}/{mission_name}/{experiment_name}/input/complete/
 
 Output folder structure:
-    /dataset/{mission_name}/{experiment_name}/output/
+    /{dataset}/{mission_name}/{experiment_name}/output/
 
 Note:
 This code has to be run before being able to run dataset_statistics.py .
 """
 
+# %%
 from pride_characterization_library import PrideDopplerCharacterization
 import os
 
+# %%
 # Initialize classes
 pride = PrideDopplerCharacterization()
 process_fdets = pride.ProcessFdets()
 utilities = pride.Utilities()
 analysis = pride.Analysis(process_fdets, utilities)
 
+# %%
 # Define experiments to analyze
 experiments_to_analyze = {
-    'juice': ['jc230417']
+    'juice': ['ec094b']
 }
 
+# %%
 # Loop over missions and experiments
 for mission_name, experiment_names in experiments_to_analyze.items():
     for experiment_name in experiment_names:
-        fdets_folder_path = 'small_dataset/juice/ec094b/input/complete/'
-        output_dir = 'small_dataset/juice/ec094b/input/complete/output'
+        fdets_folder_path = '../small_dataset/juice/ec094b/input/complete/'
+        output_dir = '../small_dataset/juice/ec094b/output/'
         horizons_target = utilities.mission_name_to_horizons_target(mission_name)
         print(f'Performing Statistical Analysis for mission: {mission_name} (Horizons Code: {horizons_target})...')
 
@@ -138,3 +143,5 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             )
 
     print('Done.')
+
+# %%
