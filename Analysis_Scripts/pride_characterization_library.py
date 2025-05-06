@@ -4015,11 +4015,9 @@ class PrideDopplerCharacterization:
                 suppress (bool): Flag to suppress plot display.
                 save_dir (str): Directory to save the plot.
             """
-            print(files_list)
-            print(station_ids)
+
             station_names = [self.Utilities.ID_to_site(site_ID) for site_ID in station_ids if site_ID is not None]
             geodetic_states = [self.Utilities.site_to_geodetic_position(station_name) for station_name in station_names]
-            print(geodetic_states)
             fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
 
             plt.figure(figsize=(13, 10))  # Initialize the plot
