@@ -39,7 +39,7 @@ utilities = pride.Utilities() # create Utilities Object
 analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
-experiments_to_analyze = {'juice': ['ec094b']} # we only add juice, but the script allows for every available mission in the PRIDE dataset
+experiments_to_analyze = {'min': ['ed045a']} # we only add juice, but the script allows for every available mission in the PRIDE dataset
 
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
@@ -56,8 +56,8 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             color_dict[experiment_name] = generate_random_color()
 
         # Define paths for input and output directories
-        fdets_folder_path = '../small_dataset/juice/ec094b/input/complete/'
-        output_dir = '../small_dataset/juice/ec094b/output/'
+        fdets_folder_path = '/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/min/ed045a/input/complete'
+        output_dir =  '/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/min/ed045a/output'
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
             continue

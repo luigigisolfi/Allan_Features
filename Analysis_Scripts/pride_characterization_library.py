@@ -174,6 +174,7 @@ class PrideDopplerCharacterization:
                 self.receiving_station_name = match.group(1)
                 return self.receiving_station_name
             else:
+                print(fdets_file_name)
                 return None
 
         def get_columns_names(self, filename):
@@ -265,182 +266,104 @@ class PrideDopplerCharacterization:
                 else:
                     print(f'Invalid number of columns: {self.n_columns}. Skipping File: {filename}...\n')
 
-        def extract_parameters(self, filename, remove_outliers = True):
 
-            """
-            Description:
-            Function to extract relevant parameters from the fdets, ready to be used.
 
-            Inputs: filename [required]
-                    JUICE [optional] (if JUICE == True, JUICE format is assumed. if JUICE == False, other missions format is assumed)
-
-            Output: Dictionary with relevant information
-
-                    dict{'utc_datetime': self.utc_datetime,
-                    'signal_to_noise': self.signal_to_noise,
-                    'doppler_noise_hz': self.doppler_noise_hz,
-                    'base_frequency': self.base_frequency,
-                    'frequency_detection': self.frequency_detection,
-                    'first_col_name': self.first_col_name,
-                    'second_col_name': self.second_col_name,
-                    'fifth_col_name': self.fifth_col_name,
-                    'utc_date': self.utc_date}
-
-            """
+        def extract_parameters(self, filename, remove_outliers=True):
             print(f'Extracting Parameters for filename: {filename}...')
+
             fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
-
             match = re.search(fdets_filename_pattern, filename)
-            if match:
-                self.receiving_station_name = match.group(1)
-                self.observation_date = self.get_observation_date(filename)
-                if self.observation_date != None:
-                    utc_time = []
-                    self.signal_to_noise = []
-                    self.doppler_noise_hz = []
-                    self.base_frequency = self.get_base_frequency(filename)
-                    self.frequency_detection = []
-                    columns_dict =self.get_columns_names(filename)  # Assign column names from the extracted parts
-                    self.n_columns = columns_dict['number_of_columns']
-    
-                    if self.n_columns == 5:
-                        self.first_col_name = columns_dict['first_col_name'] # Should be UTC time (in YY-MM-DD for JUICE) or mjd
-                        self.second_col_name = columns_dict['second_col_name']  # Signal-to-Noise
-                        self.third_col_name = columns_dict['third_col_name']   #Spectral Max
-                        self.fourth_col_name = columns_dict['fourth_col_name'] #Freq Detection
-                        self.fifth_col_name = columns_dict['fifth_col_name'] # Doppler noise [Hz]
-    
-    
-                        with open(filename, 'r') as file:   
-                            lines = file.readlines()                
-                            # Skip the first 4 lines (index 0 to 3)
-                            for line in lines[4:]:
-                                parts = line.strip().split()
-                                # Extract the necessary columns
-    
-                                utc_time.append(parts[0])
-                                self.signal_to_noise.append(float(parts[1]))
-                                self.doppler_noise_hz.append(float(parts[4]))
-                                self.frequency_detection.append(float(parts[3]))
-                        
-                                # Convert UTC time to datetime objects for plotting
-                                if self.first_col_name.strip() == 'UTC Time':
-                                    self.utc_datetime = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%f") for t in utc_time]  
-                                else: #else, it is Time(UTC) [s]
-                                    try:
-                                        self.utc_datetime = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%f") for t in utc_time]
-                                    except:
-                                        self.utc_datetime = [self.Utilities.format_observation_time(self.observation_date, float(t)) for t in utc_time]
-                                    
-                        return {
-                            'receiving_station_name': self.receiving_station_name,
-                            'utc_datetime': self.utc_datetime,
-                            'signal_to_noise': self.signal_to_noise,
-                            'doppler_noise_hz': self.doppler_noise_hz,
-                            'base_frequency': self.base_frequency,
-                            'frequency_detection': self.frequency_detection,
-                            'first_col_name': self.first_col_name,
-                            'second_col_name': self.second_col_name,
-                            'fifth_col_name': self.fifth_col_name,
-                            'utc_date': self.observation_date
-                        }
-    
-                    else:
-                        if columns_dict['first_col_name'].strip() == 'scan':
-                            
-                            self.first_col_name = columns_dict['first_col_name'] # scan number
-                            self.second_col_name = columns_dict['second_col_name'] # UTC time
-                            self.third_col_name = columns_dict['third_col_name']    # Signal-to-Noise
-                            self.fourth_col_name = columns_dict['fourth_col_name'] #Spectral Max
-                            self.fifth_col_name = columns_dict['fifth_col_name'] # Freq Detection 
-                            self.sixth_col_name = columns_dict['sixth_col_name']   # Doppler noise [Hz]
-                            
-                            with open(filename, 'r') as file:   
-                                lines = file.readlines()                
-                                # Skip the first 4 lines (index 0 to 3)
-                                for line in lines[4:]:
-                                    parts = line.strip().split()
-                                    # Extract the necessary columns
-        
-                                    utc_time.append(parts[1])
-                                    self.signal_to_noise.append(float(parts[2]))
-                                    self.doppler_noise_hz.append(float(parts[5]))
-                                    self.frequency_detection.append(float(parts[4]))
-                            
-                                    # Convert UTC time to datetime objects for plotting
-                                    if self.first_col_name.strip() == 'UTC Time':
-                                        self.utc_datetime = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%f") for t in utc_time]  
-                                    else: #else, it is Time(UTC) [s]
-                                        try:
-                                            self.utc_datetime = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%f") for t in utc_time]
-                                        except:
-                                            self.utc_datetime = [self.Utilities.format_observation_time(self.observation_date, float(t)) for t in utc_time]
-    
-                        else:
-                            self.first_col_name = columns_dict['first_col_name'] # JD time
-                            self.second_col_name = columns_dict['second_col_name'] # UTC portion of day
-                            self.third_col_name = columns_dict['third_col_name']    # Signal-to-Noise
-                            self.fourth_col_name = columns_dict['fourth_col_name'] #Spectral Max
-                            self.fifth_col_name = columns_dict['fifth_col_name'] # Freq Detection 
-                            self.sixth_col_name = columns_dict['sixth_col_name']   # Doppler noise [Hz]
-                            
-                            mjd_day = self.Utilities.utc_to_mjd(self.observation_date)
-                            utc_seconds = []
-                            with open(filename, 'r') as file:   
-                                lines = file.readlines()  
-                                # Skip the first 4 lines (index 0 to 3)
-                                for line in lines[4:]:
-                                    parts = line.strip().split()
-                                    # Extract the necessary columns
-                                    utc_seconds.append(float(parts[1])) 
-                                    self.signal_to_noise.append(float(parts[2]))
-                                    self.doppler_noise_hz.append(float(parts[5]))
-                                    self.frequency_detection.append(float(parts[4]))
-                
-                                utc_dates = [self.Utilities.mjd_utc_seconds_to_utc(mjd_day, utc_second) for utc_second in  utc_seconds]
-                               
-                                self.utc_datetime = [self.parse_datetime(t) for t in utc_dates]
 
+            if not match:
+                print(f'No match found between pattern: {fdets_filename_pattern} and filename: {filename}')
+                return None
 
-                        if remove_outliers:
-                            # Remove outliers from Doppler noise
-                            lower_percentile = np.percentile(np.array(self.doppler_noise_hz), 5)  # 5th percentile
-                            upper_percentile = np.percentile(np.array(self.doppler_noise_hz), 80)  # 95th percentile
+            self.receiving_station_name = match.group(1)
+            self.observation_date = self.get_observation_date(filename)
+            self.base_frequency = self.get_base_frequency(filename)
 
-                            # Convert lists to arrays for filtering
-                            doppler_noise_hz_array = np.array(self.doppler_noise_hz)
-                            utc_datetime_array = np.array(self.utc_datetime)
-                            frequency_detection_array = np.array(self.frequency_detection)
-                            signal_to_noise_array = np.array(self.signal_to_noise)
+            if self.observation_date is None:
+                return None
 
-                            # Filter outliers
-                            mask = (doppler_noise_hz_array >= lower_percentile) & (doppler_noise_hz_array <= upper_percentile)
-                            filtered_doppler = doppler_noise_hz_array[mask]
-                            filtered_utc = utc_datetime_array[mask]
-                            filtered_detection = frequency_detection_array[mask]
-                            filtered_snr = signal_to_noise_array[mask]
+            columns_dict = self.get_columns_names(filename)
+            self.n_columns = columns_dict['number_of_columns']
 
-                            # Convert arrays back to lists
-                            self.utc_datetime = list(filtered_utc)
-                            self.doppler_noise_hz = list(filtered_doppler)
-                            self.frequency_detection = list(filtered_detection)
-                            self.signal_to_noise = list(filtered_snr)
+            # Predefine empty lists
+            utc_time = []
+            signal_to_noise = []
+            doppler_noise_hz = []
+            frequency_detection = []
 
-                    return {
-                        'receiving_station_name': self.receiving_station_name,
-                        'utc_datetime': self.utc_datetime,
-                        'signal_to_noise': self.signal_to_noise,
-                        'doppler_noise_hz': self.doppler_noise_hz,
-                        'base_frequency': self.base_frequency,
-                        'frequency_detection': self.frequency_detection,
-                        'first_col_name': self.first_col_name,
-                        'second_col_name': self.second_col_name,
-                        'fifth_col_name': self.fifth_col_name,
-                        'utc_date': self.observation_date
-                    }
+            # Setup column indices based on format
+            if self.n_columns == 5:
+                idx_time, idx_snr, idx_freq, idx_dopp = 0, 1, 3, 4
+                self.first_col_name = columns_dict['first_col_name']
+                self.second_col_name = columns_dict['second_col_name']
+                self.fifth_col_name = columns_dict['fifth_col_name']
+                is_utc_time = self.first_col_name.strip() == 'UTC Time'
+
+            elif columns_dict['first_col_name'].strip() == 'scan':
+                idx_time, idx_snr, idx_freq, idx_dopp = 1, 2, 4, 5
+                self.first_col_name = columns_dict['first_col_name']
+                self.second_col_name = columns_dict['second_col_name']
+                self.fifth_col_name = columns_dict['fifth_col_name']
+                is_utc_time = self.second_col_name.strip() == 'UTC Time'
 
             else:
-                print(f'No match found between pattern: {fdets_filename_pattern} and filename: {filename}')
+                idx_time, idx_snr, idx_freq, idx_dopp = 1, 2, 4, 5
+                mjd_day = self.Utilities.utc_to_mjd(self.observation_date)
+                self.first_col_name = columns_dict['first_col_name']
+                self.second_col_name = columns_dict['second_col_name']
+                self.fifth_col_name = columns_dict['fifth_col_name']
+                is_mjd_seconds = True
+
+            # Read file line by line (skipping headers)
+            with open(filename, 'r') as file:
+                for i, line in enumerate(file):
+                    if i < 4: continue  # Skip header lines
+                    parts = line.strip().split()
+
+                    utc_time.append(parts[idx_time])
+                    signal_to_noise.append(float(parts[idx_snr]))
+                    doppler_noise_hz.append(float(parts[idx_dopp]))
+                    frequency_detection.append(float(parts[idx_freq]))
+
+            # Convert UTC time
+            if self.n_columns == 5 or columns_dict['first_col_name'].strip() == 'scan':
+                try:
+                    self.utc_datetime = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%f") for t in utc_time]
+                except ValueError:
+                    self.utc_datetime = [self.Utilities.format_observation_time(self.observation_date, float(t)) for t in utc_time]
+            else:
+                utc_dates = [self.Utilities.mjd_utc_seconds_to_utc(mjd_day, float(t)) for t in utc_time]
+                self.utc_datetime = [self.parse_datetime(t) for t in utc_dates]
+
+            # Assign parsed lists to attributes
+            self.signal_to_noise = signal_to_noise
+            self.doppler_noise_hz = doppler_noise_hz
+            self.frequency_detection = frequency_detection
+
+            # Remove outliers
+            if remove_outliers:
+                doppler_arr = np.array(doppler_noise_hz)
+                mask = (doppler_arr >= np.percentile(doppler_arr, 5)) & (doppler_arr <= np.percentile(doppler_arr, 80))
+                self.utc_datetime = list(np.array(self.utc_datetime)[mask])
+                self.doppler_noise_hz = list(doppler_arr[mask])
+                self.frequency_detection = list(np.array(frequency_detection)[mask])
+                self.signal_to_noise = list(np.array(signal_to_noise)[mask])
+
+            return {
+                'receiving_station_name': self.receiving_station_name,
+                'utc_datetime': self.utc_datetime,
+                'signal_to_noise': self.signal_to_noise,
+                'doppler_noise_hz': self.doppler_noise_hz,
+                'base_frequency': self.base_frequency,
+                'frequency_detection': self.frequency_detection,
+                'first_col_name': self.first_col_name,
+                'second_col_name': self.second_col_name,
+                'fifth_col_name': self.fifth_col_name,
+                'utc_date': self.observation_date
+            }
 
         ########################################################################################################################################
 ########################################################################################################################################
@@ -2975,118 +2898,129 @@ class PrideDopplerCharacterization:
 
         def plot_madev_stations(self, extracted_data_list, experiment_name, tau_min=None, tau_max=None, save_dir=None, suppress=False, color_regions=False):
             """
-            Plots Modified Allan Deviation (mADEV) and other relevant parameters, including error bounds.
-
-            Supports multiple extracted_data inputs (e.g., from different stations), plotting them in the same figure.
+            Plots Modified Allan Deviation (mADEV) and saves one plot per unique date and corresponding data to CSV files.
 
             Args:
                 extracted_data_list (list): List of extracted_data dicts, each containing:
                                             - utc_datetime, signal_to_noise, doppler_noise_hz, frequency_detection, base_frequency, etc.
                 tau_min (float, optional): Minimum tau for filtering.
                 tau_max (float, optional): Maximum tau for filtering.
-                save_dir (str, optional): Directory to save the plot.
+                save_dir (str, optional): Directory to save the plots and CSVs.
                 suppress (bool, optional): If True, does not show the plot.
-                plot_madev_only (bool, optional): If True, only plots mADEV.
                 color_regions (bool, optional): Enables color-coding regions based on error bounds.
-
             """
 
             if not isinstance(extracted_data_list, list):
-                extracted_data_list = [extracted_data_list]  # Ensure list format
+                extracted_data_list = [extracted_data_list]
 
-            # Extract all unique days
+            # Extract all unique dates
             unique_dates_set = set()
             for extracted_data in extracted_data_list:
                 utc_datetime = extracted_data['utc_datetime']
                 unique_dates_set.update(day.strftime('%Y-%m-%d') for day in utc_datetime)
 
-            unique_dates_list = sorted(list(unique_dates_set))  # Sort for chronological order
+            unique_dates_list = sorted(list(unique_dates_set))  # Chronological order
 
-            # Create subplots
-            num_days = len(unique_dates_list)
-            fig, axs = plt.subplots(num_days, 1, figsize=(10, 5 * num_days), sharex=True)
+            colors = cm.get_cmap('tab10', len(extracted_data_list))  # Unique colors per station
 
-            if num_days == 1:
-                axs = [axs]
+            if save_dir and not os.path.exists(save_dir):
+                os.makedirs(save_dir)
 
-            colors = cm.get_cmap('tab10', len(extracted_data_list))  # Assign unique colors
+            for date in unique_dates_list:
+                fig, ax = plt.subplots(figsize=(10, 5))
+                output_rows = []  # For CSV
 
-            for i, extracted_data in enumerate(extracted_data_list):
-                color = colors(i)
+                for i, extracted_data in enumerate(extracted_data_list):
+                    color = colors(i)
+                    receiving_station_name = extracted_data['receiving_station_name']
+                    utc_datetime = extracted_data['utc_datetime']
+                    doppler_noise_hz = extracted_data['doppler_noise_hz']
+                    frequency_detection = extracted_data['frequency_detection']
+                    base_frequency = extracted_data['base_frequency']
 
-                # Extract Data
-                receiving_station_name = extracted_data['receiving_station_name']
-                #if receiving_station_name in ['Mh', 'Ht']: # for MEX (Vidhya's paper)
-                #    continue
-                utc_datetime = extracted_data['utc_datetime']
-                doppler_noise_hz = extracted_data['doppler_noise_hz']
-                frequency_detection = extracted_data['frequency_detection']
-                base_frequency = extracted_data['base_frequency']
+                    # Determine sampling rate
+                    t_jd = np.array([Time(time).jd for time in utc_datetime])
+                    diffs = np.diff(t_jd)
+                    most_common_diff = Counter(diffs).most_common(1)
 
-                # Compute Sampling Rate
-                t_jd = np.array([Time(time).jd for time in utc_datetime])
-                diffs = np.diff(t_jd)
-                most_common_diff = Counter(diffs).most_common(1)
+                    if not most_common_diff or most_common_diff[0][0] == 0:
+                        print(f"Skipping dataset {i+1}: Cannot determine sampling rate.")
+                        continue
 
-                if not most_common_diff or most_common_diff[0][0] == 0:
-                    print(f"Skipping dataset {i+1}: Cannot determine sampling rate.")
-                    continue
+                    rate_fdets = 1 / (most_common_diff[0][0] * 86400)
 
-                rate_fdets = 1 / (most_common_diff[0][0] * 86400)
+                    # Compute mADEV
+                    try:
+                        taus, mdev, errors, _ = allantools.mdev(
+                            np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
+                            rate=rate_fdets,
+                            data_type='freq',
+                            taus='decade'
+                        )
+                    except Exception as e:
+                        print(f"Skipping dataset {i+1} due to error in Allan deviation computation: {e}")
+                        continue
 
-                # Compute Modified Allan Deviation (mADEV)
-                try:
-                    taus, mdev, errors, _ = allantools.mdev(
-                        np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
-                        rate=rate_fdets,
-                        data_type='freq',
-                        taus='decade'
-                    )
-                except Exception as e:
-                    print(f"Skipping dataset {i+1} due to error in Allan deviation computation: {e}")
-                    continue
+                    # Filter tau range
+                    tau_mask = np.ones_like(taus, dtype=bool)
+                    if tau_min is not None:
+                        tau_mask &= taus >= tau_min
+                    if tau_max is not None:
+                        tau_mask &= taus <= tau_max
 
-                # Filter tau range
-                if tau_min is not None:
-                    taus = taus[taus >= tau_min]
-                if tau_max is not None:
-                    taus = taus[taus <= tau_max]
+                    taus = taus[tau_mask]
+                    mdev = np.array(mdev)[tau_mask]
+                    errors = np.array(errors)[tau_mask]
 
-                # Generate the white noise reference line
-                mdev_white = [mdev[0]]  # Initialize with the first value
-                for i in range(1, len(taus)):
-                    mdev_white.append(mdev[0] * (taus[i] / taus[0])**(-1/2))
-
-                # Plot mADEV in the corresponding subplot for each day
-                for date in unique_dates_list:
+                    # Only use data from this date
                     date_data_mask = [d.strftime('%Y-%m-%d') == date for d in utc_datetime]
-                    if any(date_data_mask):
-                        ax = axs[unique_dates_list.index(date)]
-                        ax.errorbar(taus, np.array(mdev)[:len(taus)], yerr=np.array(errors)[:len(taus)], fmt='o', markersize=3, linestyle='dashed', color=color, label=receiving_station_name)
+                    if not any(date_data_mask):
+                        continue
 
-                        ax.set_xscale("log")
-                        ax.set_yscale("log")
-                        ax.set_xlabel('Averaging Time (s)')
-                        ax.set_ylabel('Modified Allan Deviation')
-                        ax.set_title(f'Experiment {experiment_name} on {date}')
+                    # Plot
+                    ax.errorbar(taus, mdev, yerr=errors, fmt='o', markersize=3, linestyle='dashed',
+                                color=color, label=receiving_station_name)
 
-                        # Apply custom ticks
-                        log_ticks_x = np.logspace(np.log10(taus[0]), np.log10(taus[-1]), num=10)
-                        valid_xticks = np.searchsorted(taus, log_ticks_x)
-                        valid_xticks = valid_xticks[valid_xticks < len(taus)]
-                        ax.set_xticks(taus[valid_xticks])
-                        ax.set_xlim(9, 110)
-                        ax.set_xticklabels([f"{round(tick)}" for tick in taus[valid_xticks]])
+                    # Save rows for CSV
+                    for t, m, e in zip(taus, mdev, errors):
+                        output_rows.append([t, m, e, receiving_station_name])
 
-                        ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
-                        ax.grid(True, which="both", ls="--", alpha = 0.3)
+                # Finalize plot
+                ax.set_xscale("log")
+                ax.set_yscale("log")
+                ax.set_xlabel('Averaging Time (s)')
+                ax.set_ylabel('Modified Allan Deviation')
+                ax.set_title(f'Experiment {experiment_name} on {date}')
+                ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+                ax.grid(True, which="both", ls="--", alpha=0.3)
 
-            plt.tight_layout()
+                log_ticks_x = np.logspace(np.log10(taus[0]), np.log10(taus[-1]), num=10)
+                valid_xticks = np.searchsorted(taus, log_ticks_x)
+                valid_xticks = valid_xticks[valid_xticks < len(taus)]
+                ax.set_xticks(taus[valid_xticks])
+                ax.set_xlim(9, 110)
+                ax.set_xticklabels([f"{round(tick)}" for tick in taus[valid_xticks]])
 
-            if save_dir:
-                plt.savefig(save_dir + experiment_name + '_mad.png')
-            if not suppress:
-                plt.show()
+                plt.tight_layout()
+
+                # Save plot
+                if save_dir:
+                    fig_path = os.path.join(save_dir, f"{experiment_name}_{date}_mad.png")
+                    plt.savefig(fig_path)
+
+                if not suppress:
+                    plt.show()
+
+                plt.close(fig)
+
+                # Save CSV
+                if save_dir and output_rows:
+                    csv_path = os.path.join(save_dir, f"{experiment_name}_{date}_mad.csv")
+                    with open(csv_path, 'w', newline='') as f:
+                        writer = csv.writer(f)
+                        writer.writerow(["Tau (s)", "Modified Allan Deviation", "Error", "Station"])
+                        writer.writerows(output_rows)
+
 
         def get_all_stations_madev_plot(self, fdets_folder_path, experiment_name, extracted_parameters_list = None, tau_min = None, tau_max = None, suppress = False, plot_madev_only = True, save_dir = None):
 
@@ -4081,8 +4015,11 @@ class PrideDopplerCharacterization:
                 suppress (bool): Flag to suppress plot display.
                 save_dir (str): Directory to save the plot.
             """
+            print(files_list)
+            print(station_ids)
             station_names = [self.Utilities.ID_to_site(site_ID) for site_ID in station_ids if site_ID is not None]
             geodetic_states = [self.Utilities.site_to_geodetic_position(station_name) for station_name in station_names]
+            print(geodetic_states)
             fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
 
             plt.figure(figsize=(13, 10))  # Initialize the plot
