@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from collections import Counter
 from astropy.time import Time
 import allantools
-from matplotlib import cm 
+from matplotlib import cm
 from datetime import datetime, timedelta
 import matplotlib.patches as mpatches
 import seaborn as sns
@@ -32,34 +32,34 @@ class PrideDopplerCharacterization:
     JUICE:   [experiments: EC094A, EC094B] + [data between Apr - May 2023]
     MEX:     [experiment: GR035 (Phobos Flyby)], mex_solar_conjunction_2021)
     INSIGHT: [experiments: ED045A,ED045C,ED045D,ED045E,ED045F]
-    
-    To be included: 
-    VEX, 
-    MRO, 
+
+    To be included:
+    VEX,
+    MRO,
     what else...?
-    
+
     """
-    
+
     def __init__(self):
         self.result = 0
         self.process_fdets = self.ProcessFdets()
         self.analysis = self.Analysis
 
-########################################################################################################################################
-##################################################### ProcessFdets class ###############################################################
-########################################################################################################################################
-    
+    ########################################################################################################################################
+    ##################################################### ProcessFdets class ###############################################################
+    ########################################################################################################################################
+
     # Function to extract data from the file
     class ProcessFdets:
-        
+
         def __init__(self):
             self.result = 0
             self.Utilities = PrideDopplerCharacterization.Utilities()
             self.ProcessVexFiles = PrideDopplerCharacterization.ProcessVexFiles(self, self.Utilities)
 
-########################################################################################################################################
-########################################################################################################################################
-        
+        ########################################################################################################################################
+        ########################################################################################################################################
+
         def get_observation_date(self, filename):
             """
              Description:
@@ -72,14 +72,14 @@ class PrideDopplerCharacterization:
                 - Returns the observation date as a string in `YYYY.MM.DD` or `YYYY-MM-DD` format.
                 - If the observation date cannot be determined, prints an error message and skips processing.
             """
-            with open(filename, 'r') as file:        
+            with open(filename, 'r') as file:
                 lines = file.readlines()
                 header_match = re.search(r'Observation conducted on',lines[0])
                 if not header_match:
                     print(f'Invalid File: {filename}. Reason: Invalid Observation Header: {header_match}. Skipping...\n')
 
                 else:
-            
+
                     date_match = re.search(r'Observation conducted on (\d{4}\.\d{2}\.\d{2})', lines[0])
                     if date_match:
                         # Return the date as a string in YYYY.MM.DD format
@@ -91,27 +91,27 @@ class PrideDopplerCharacterization:
                     if not self.observation_date:
                         self.first_col_name = self.get_columns_names(filename)['first_col_name']
                         if self.first_col_name.strip() == 'UTC Time':
-                                lines = file.readlines()
-                                parts = lines[5].strip().split()
-                                utc_time = parts[0]
-                                utc_datetime = datetime.strptime(utc_time, "%Y-%m-%dT%H:%M:%S.%f")
-                                self.observation_date = utc_datetime[0].strftime("%Y-%m-%d")
-                                return self.observation_date
-                            
-                            
+                            lines = file.readlines()
+                            parts = lines[5].strip().split()
+                            utc_time = parts[0]
+                            utc_datetime = datetime.strptime(utc_time, "%Y-%m-%dT%H:%M:%S.%f")
+                            self.observation_date = utc_datetime[0].strftime("%Y-%m-%d")
+                            return self.observation_date
+
+
                         elif self.first_col_name.strip() == 'Modified Julian Date' or self.first_col_name.strip() == 'Modified JD':
-                                lines = file.readlines()
-                                parts = lines[5].strip().split()
-                                mjd = float(parts[0])
-                                self.observation_date = self.Utilities.mjd_to_utc(mjd)
-                                return(self.observation_date)
-    
+                            lines = file.readlines()
+                            parts = lines[5].strip().split()
+                            mjd = float(parts[0])
+                            self.observation_date = self.Utilities.mjd_to_utc(mjd)
+                            return(self.observation_date)
+
                         else:
                             print(f'Could Not Retrieve Observation Date from File: {filename}. Skipping...\n')
 
-########################################################################################################################################
-########################################################################################################################################
-                            
+        ########################################################################################################################################
+        ########################################################################################################################################
+
         def get_base_frequency(self, filename):
             """
             Description:
@@ -132,14 +132,14 @@ class PrideDopplerCharacterization:
                 # Open the file and read lines
                 with open(filename, 'r') as file:
                     lines = file.readlines()
-                    
+
                     try:
                         self.base_frequency = float(lines[1].split(' ')[3])*1e6 #the base frequency in the fdets is expressed as MHz
-    
+
                         #BEWARE THIS ELIF!!!!!!!! We do not know exactly the InSight frequencies
                         #elif float(lines[1].split(' ')[3]) == 0.0:
                         #    self.base_frequency =  8416.49*1e6 ##Handle InSight data, which has bad headers,
-                                                               ##but in the VEX file you can see the channel frequencies .  
+                        ##but in the VEX file you can see the channel frequencies .
                     except:
                         print(f'Not a valid base frequency: {float(lines[1].split(" ")[3])*1e6}.\n '
                               'Recommended action: correct base frequencies of your dataset based on the vex files.\n '
@@ -149,12 +149,12 @@ class PrideDopplerCharacterization:
                         #    self.base_frequency = 8412*1e6 #Handle MEX data, which has some bad headers.
                         #                                    #Assuming all observations where at 8412 MHz (based on the good headers)
 
-                return self.base_frequency                
-            else: 
-                print(f'Pointless to retrieve base frequency, as there is no valid observation date in the header.')    
+                return self.base_frequency
+            else:
+                print(f'Pointless to retrieve base frequency, as there is no valid observation date in the header.')
 
-########################################################################################################################################
-########################################################################################################################################
+            ########################################################################################################################################
+        ########################################################################################################################################
 
         def get_station_name_from_file(self, fdets_file_name):
             """
@@ -174,6 +174,7 @@ class PrideDopplerCharacterization:
                 self.receiving_station_name = match.group(1)
                 return self.receiving_station_name
             else:
+                print(fdets_file_name)
                 return None
 
         def get_columns_names(self, filename):
@@ -202,7 +203,7 @@ class PrideDopplerCharacterization:
 
                 # Extract column names from row 3 (index 2)
                 columns_header = lines[2].strip()
-     
+
                 # Split the header line by '|'
                 columns_header_parts = columns_header.split('|')
 
@@ -212,20 +213,20 @@ class PrideDopplerCharacterization:
                 if columns_header_parts[-1] == '':
                     self.n_columns = len(columns_header_parts) - 1 #some column headers end with |
                 else:
-                    self.n_columns = len(columns_header_parts)  # others dont ...           
-                
+                    self.n_columns = len(columns_header_parts)  # others dont ...
+
                 if self.n_columns == 5:  # Assign column names from the extracted parts
-                    
+
                     try: #sometimes there is Format:, others there is not...
-                        self.first_col_name = columns_header_parts[0].split(':',1)[1] #Typically UTC time (in YY-MM-DD for JUICE) 
-                                                                                    # or Time(UTC) [s] for VEX
-                    except: 
-                        self.first_col_name = columns_header_parts[0]   # Typically Modified Julian Date or Modified JD 
+                        self.first_col_name = columns_header_parts[0].split(':',1)[1] #Typically UTC time (in YY-MM-DD for JUICE)
+                        # or Time(UTC) [s] for VEX
+                    except:
+                        self.first_col_name = columns_header_parts[0]   # Typically Modified Julian Date or Modified JD
                     self.second_col_name = columns_header_parts[1]  # Signal-to-Noise
                     self.third_col_name = columns_header_parts[2]  # Spectral Max
                     self.fourth_col_name = columns_header_parts[3]  # Freq. Detection
                     self.fifth_col_name = columns_header_parts[4]  # Doppler Noise
-                    
+
                     return {
                         'number_of_columns': self.n_columns,
                         'first_col_name': self.first_col_name,
@@ -234,23 +235,23 @@ class PrideDopplerCharacterization:
                         'fourth_col_name': self.fourth_col_name,
                         'fifth_col_name': self.fifth_col_name,
                     }
-                
+
                 elif self.n_columns == 6:
-                    
+
                     try:  #sometimes there is Format:, others there is not...
-                        self.first_col_name = columns_header_parts[0].split(':',1)[1]   # Typically Modified Julian Date or Modified JD 
-                    except: 
-                        self.first_col_name = columns_header_parts[0]   # Typically Modified Julian Date or Modified JD 
+                        self.first_col_name = columns_header_parts[0].split(':',1)[1]   # Typically Modified Julian Date or Modified JD
+                    except:
+                        self.first_col_name = columns_header_parts[0]   # Typically Modified Julian Date or Modified JD
 
                     try:
                         self.second_col_name = columns_header_parts[1].split(':',1)[1]  # Typically Time(UTC) [s]
-                    except: 
+                    except:
                         self.second_col_name = columns_header_parts[1] # Typically Time(UTC) [s]
 
                     self.third_col_name = columns_header_parts[2]  # Signal-to-Noise
                     self.fourth_col_name = columns_header_parts[3]  # Spectral Max
-                    self.fifth_col_name = columns_header_parts[4]  # Freq. Detection 
-                    self.sixth_col_name = columns_header_parts[5]  # Doppler Noise  
+                    self.fifth_col_name = columns_header_parts[4]  # Freq. Detection
+                    self.sixth_col_name = columns_header_parts[5]  # Doppler Noise
 
                     return {
                         'number_of_columns': self.n_columns,
@@ -265,185 +266,107 @@ class PrideDopplerCharacterization:
                 else:
                     print(f'Invalid number of columns: {self.n_columns}. Skipping File: {filename}...\n')
 
-        def extract_parameters(self, filename, remove_outliers = True):
 
-            """
-            Description:
-            Function to extract relevant parameters from the fdets, ready to be used.
 
-            Inputs: filename [required]
-                    JUICE [optional] (if JUICE == True, JUICE format is assumed. if JUICE == False, other missions format is assumed)
-
-            Output: Dictionary with relevant information
-
-                    dict{'utc_datetime': self.utc_datetime,
-                    'signal_to_noise': self.signal_to_noise,
-                    'doppler_noise_hz': self.doppler_noise_hz,
-                    'base_frequency': self.base_frequency,
-                    'frequency_detection': self.frequency_detection,
-                    'first_col_name': self.first_col_name,
-                    'second_col_name': self.second_col_name,
-                    'fifth_col_name': self.fifth_col_name,
-                    'utc_date': self.utc_date}
-
-            """
+        def extract_parameters(self, filename, remove_outliers=True):
             print(f'Extracting Parameters for filename: {filename}...')
+
             fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
-
             match = re.search(fdets_filename_pattern, filename)
-            if match:
-                self.receiving_station_name = match.group(1)
-                self.observation_date = self.get_observation_date(filename)
-                if self.observation_date != None:
-                    utc_time = []
-                    self.signal_to_noise = []
-                    self.doppler_noise_hz = []
-                    self.base_frequency = self.get_base_frequency(filename)
-                    self.frequency_detection = []
-                    columns_dict =self.get_columns_names(filename)  # Assign column names from the extracted parts
-                    self.n_columns = columns_dict['number_of_columns']
-    
-                    if self.n_columns == 5:
-                        self.first_col_name = columns_dict['first_col_name'] # Should be UTC time (in YY-MM-DD for JUICE) or mjd
-                        self.second_col_name = columns_dict['second_col_name']  # Signal-to-Noise
-                        self.third_col_name = columns_dict['third_col_name']   #Spectral Max
-                        self.fourth_col_name = columns_dict['fourth_col_name'] #Freq Detection
-                        self.fifth_col_name = columns_dict['fifth_col_name'] # Doppler noise [Hz]
-    
-    
-                        with open(filename, 'r') as file:   
-                            lines = file.readlines()                
-                            # Skip the first 4 lines (index 0 to 3)
-                            for line in lines[4:]:
-                                parts = line.strip().split()
-                                # Extract the necessary columns
-    
-                                utc_time.append(parts[0])
-                                self.signal_to_noise.append(float(parts[1]))
-                                self.doppler_noise_hz.append(float(parts[4]))
-                                self.frequency_detection.append(float(parts[3]))
-                        
-                                # Convert UTC time to datetime objects for plotting
-                                if self.first_col_name.strip() == 'UTC Time':
-                                    self.utc_datetime = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%f") for t in utc_time]  
-                                else: #else, it is Time(UTC) [s]
-                                    try:
-                                        self.utc_datetime = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%f") for t in utc_time]
-                                    except:
-                                        self.utc_datetime = [self.Utilities.format_observation_time(self.observation_date, float(t)) for t in utc_time]
-                                    
-                        return {
-                            'receiving_station_name': self.receiving_station_name,
-                            'utc_datetime': self.utc_datetime,
-                            'signal_to_noise': self.signal_to_noise,
-                            'doppler_noise_hz': self.doppler_noise_hz,
-                            'base_frequency': self.base_frequency,
-                            'frequency_detection': self.frequency_detection,
-                            'first_col_name': self.first_col_name,
-                            'second_col_name': self.second_col_name,
-                            'fifth_col_name': self.fifth_col_name,
-                            'utc_date': self.observation_date
-                        }
-    
-                    else:
-                        if columns_dict['first_col_name'].strip() == 'scan':
-                            
-                            self.first_col_name = columns_dict['first_col_name'] # scan number
-                            self.second_col_name = columns_dict['second_col_name'] # UTC time
-                            self.third_col_name = columns_dict['third_col_name']    # Signal-to-Noise
-                            self.fourth_col_name = columns_dict['fourth_col_name'] #Spectral Max
-                            self.fifth_col_name = columns_dict['fifth_col_name'] # Freq Detection 
-                            self.sixth_col_name = columns_dict['sixth_col_name']   # Doppler noise [Hz]
-                            
-                            with open(filename, 'r') as file:   
-                                lines = file.readlines()                
-                                # Skip the first 4 lines (index 0 to 3)
-                                for line in lines[4:]:
-                                    parts = line.strip().split()
-                                    # Extract the necessary columns
-        
-                                    utc_time.append(parts[1])
-                                    self.signal_to_noise.append(float(parts[2]))
-                                    self.doppler_noise_hz.append(float(parts[5]))
-                                    self.frequency_detection.append(float(parts[4]))
-                            
-                                    # Convert UTC time to datetime objects for plotting
-                                    if self.first_col_name.strip() == 'UTC Time':
-                                        self.utc_datetime = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%f") for t in utc_time]  
-                                    else: #else, it is Time(UTC) [s]
-                                        try:
-                                            self.utc_datetime = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%f") for t in utc_time]
-                                        except:
-                                            self.utc_datetime = [self.Utilities.format_observation_time(self.observation_date, float(t)) for t in utc_time]
-    
-                        else:
-                            self.first_col_name = columns_dict['first_col_name'] # JD time
-                            self.second_col_name = columns_dict['second_col_name'] # UTC portion of day
-                            self.third_col_name = columns_dict['third_col_name']    # Signal-to-Noise
-                            self.fourth_col_name = columns_dict['fourth_col_name'] #Spectral Max
-                            self.fifth_col_name = columns_dict['fifth_col_name'] # Freq Detection 
-                            self.sixth_col_name = columns_dict['sixth_col_name']   # Doppler noise [Hz]
-                            
-                            mjd_day = self.Utilities.utc_to_mjd(self.observation_date)
-                            utc_seconds = []
-                            with open(filename, 'r') as file:   
-                                lines = file.readlines()  
-                                # Skip the first 4 lines (index 0 to 3)
-                                for line in lines[4:]:
-                                    parts = line.strip().split()
-                                    # Extract the necessary columns
-                                    utc_seconds.append(float(parts[1])) 
-                                    self.signal_to_noise.append(float(parts[2]))
-                                    self.doppler_noise_hz.append(float(parts[5]))
-                                    self.frequency_detection.append(float(parts[4]))
-                
-                                utc_dates = [self.Utilities.mjd_utc_seconds_to_utc(mjd_day, utc_second) for utc_second in  utc_seconds]
-                               
-                                self.utc_datetime = [self.parse_datetime(t) for t in utc_dates]
 
+            if not match:
+                print(f'No match found between pattern: {fdets_filename_pattern} and filename: {filename}')
+                return None
 
-                        if remove_outliers:
-                            # Remove outliers from Doppler noise
-                            lower_percentile = np.percentile(np.array(self.doppler_noise_hz), 5)  # 5th percentile
-                            upper_percentile = np.percentile(np.array(self.doppler_noise_hz), 80)  # 95th percentile
+            self.receiving_station_name = match.group(1)
+            self.observation_date = self.get_observation_date(filename)
+            self.base_frequency = self.get_base_frequency(filename)
 
-                            # Convert lists to arrays for filtering
-                            doppler_noise_hz_array = np.array(self.doppler_noise_hz)
-                            utc_datetime_array = np.array(self.utc_datetime)
-                            frequency_detection_array = np.array(self.frequency_detection)
-                            signal_to_noise_array = np.array(self.signal_to_noise)
+            if self.observation_date is None:
+                return None
 
-                            # Filter outliers
-                            mask = (doppler_noise_hz_array >= lower_percentile) & (doppler_noise_hz_array <= upper_percentile)
-                            filtered_doppler = doppler_noise_hz_array[mask]
-                            filtered_utc = utc_datetime_array[mask]
-                            filtered_detection = frequency_detection_array[mask]
-                            filtered_snr = signal_to_noise_array[mask]
+            columns_dict = self.get_columns_names(filename)
+            self.n_columns = columns_dict['number_of_columns']
 
-                            # Convert arrays back to lists
-                            self.utc_datetime = list(filtered_utc)
-                            self.doppler_noise_hz = list(filtered_doppler)
-                            self.frequency_detection = list(filtered_detection)
-                            self.signal_to_noise = list(filtered_snr)
+            # Predefine empty lists
+            utc_time = []
+            signal_to_noise = []
+            doppler_noise_hz = []
+            frequency_detection = []
 
-                    return {
-                        'receiving_station_name': self.receiving_station_name,
-                        'utc_datetime': self.utc_datetime,
-                        'signal_to_noise': self.signal_to_noise,
-                        'doppler_noise_hz': self.doppler_noise_hz,
-                        'base_frequency': self.base_frequency,
-                        'frequency_detection': self.frequency_detection,
-                        'first_col_name': self.first_col_name,
-                        'second_col_name': self.second_col_name,
-                        'fifth_col_name': self.fifth_col_name,
-                        'utc_date': self.observation_date
-                    }
+            # Setup column indices based on format
+            if self.n_columns == 5:
+                idx_time, idx_snr, idx_freq, idx_dopp = 0, 1, 3, 4
+                self.first_col_name = columns_dict['first_col_name']
+                self.second_col_name = columns_dict['second_col_name']
+                self.fifth_col_name = columns_dict['fifth_col_name']
+                is_utc_time = self.first_col_name.strip() == 'UTC Time'
+
+            elif columns_dict['first_col_name'].strip() == 'scan':
+                idx_time, idx_snr, idx_freq, idx_dopp = 1, 2, 4, 5
+                self.first_col_name = columns_dict['first_col_name']
+                self.second_col_name = columns_dict['second_col_name']
+                self.fifth_col_name = columns_dict['fifth_col_name']
+                is_utc_time = self.second_col_name.strip() == 'UTC Time'
 
             else:
-                print(f'No match found between pattern: {fdets_filename_pattern} and filename: {filename}')
+                idx_time, idx_snr, idx_freq, idx_dopp = 1, 2, 4, 5
+                mjd_day = self.Utilities.utc_to_mjd(self.observation_date)
+                self.first_col_name = columns_dict['first_col_name']
+                self.second_col_name = columns_dict['second_col_name']
+                self.fifth_col_name = columns_dict['fifth_col_name']
+                is_mjd_seconds = True
+
+            # Read file line by line (skipping headers)
+            with open(filename, 'r') as file:
+                for i, line in enumerate(file):
+                    if i < 4: continue  # Skip header lines
+                    parts = line.strip().split()
+
+                    utc_time.append(parts[idx_time])
+                    signal_to_noise.append(float(parts[idx_snr]))
+                    doppler_noise_hz.append(float(parts[idx_dopp]))
+                    frequency_detection.append(float(parts[idx_freq]))
+
+            # Convert UTC time
+            if self.n_columns == 5 or columns_dict['first_col_name'].strip() == 'scan':
+                try:
+                    self.utc_datetime = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%f") for t in utc_time]
+                except ValueError:
+                    self.utc_datetime = [self.Utilities.format_observation_time(self.observation_date, float(t)) for t in utc_time]
+            else:
+                utc_dates = [self.Utilities.mjd_utc_seconds_to_utc(mjd_day, float(t)) for t in utc_time]
+                self.utc_datetime = [self.parse_datetime(t) for t in utc_dates]
+
+            # Assign parsed lists to attributes
+            self.signal_to_noise = signal_to_noise
+            self.doppler_noise_hz = doppler_noise_hz
+            self.frequency_detection = frequency_detection
+
+            # Remove outliers
+            if remove_outliers:
+                doppler_arr = np.array(doppler_noise_hz)
+                mask = (doppler_arr >= np.percentile(doppler_arr, 5)) & (doppler_arr <= np.percentile(doppler_arr, 80))
+                self.utc_datetime = list(np.array(self.utc_datetime)[mask])
+                self.doppler_noise_hz = list(doppler_arr[mask])
+                self.frequency_detection = list(np.array(frequency_detection)[mask])
+                self.signal_to_noise = list(np.array(signal_to_noise)[mask])
+
+            return {
+                'receiving_station_name': self.receiving_station_name,
+                'utc_datetime': self.utc_datetime,
+                'signal_to_noise': self.signal_to_noise,
+                'doppler_noise_hz': self.doppler_noise_hz,
+                'base_frequency': self.base_frequency,
+                'frequency_detection': self.frequency_detection,
+                'first_col_name': self.first_col_name,
+                'second_col_name': self.second_col_name,
+                'fifth_col_name': self.fifth_col_name,
+                'utc_date': self.observation_date
+            }
 
         ########################################################################################################################################
-########################################################################################################################################
+        ########################################################################################################################################
 
         def parse_datetime(self, t):
             """
@@ -523,327 +446,327 @@ class PrideDopplerCharacterization:
             """
 
             self.experiments = {
-            "gr035": {
-                "mission_name": "mex",
-                "vex_file_name": "gr035.vix",
-                "exper_description": "mars_express tracking test",
-                "exper_nominal_start": "2020y053d01h30m00s",
-                "exper_nominal_stop": "2020y053d03h00m00s"
-            },
+                "gr035": {
+                    "mission_name": "mex",
+                    "vex_file_name": "gr035.vix",
+                    "exper_description": "mars_express tracking test",
+                    "exper_nominal_start": "2020y053d01h30m00s",
+                    "exper_nominal_stop": "2020y053d03h00m00s"
+                },
 
-            "m0303": {
-                "mission_name": "mex",
-                "vex_file_name": "m0303.vix",
-                "exper_description": "mars express tracking test",
-                "exper_nominal_start": "2010y062d20h00m00s",
-                "exper_nominal_stop": "2010y062d21h59m00s"
-            },
+                "m0303": {
+                    "mission_name": "mex",
+                    "vex_file_name": "m0303.vix",
+                    "exper_description": "mars express tracking test",
+                    "exper_nominal_start": "2010y062d20h00m00s",
+                    "exper_nominal_stop": "2010y062d21h59m00s"
+                },
 
-            "m0325": {
-                "mission_name": "mex",
-                "vex_file_name": "m0325.vix",
-                "exper_description": "mars express tracking test",
-                "exper_nominal_start": "2012y085d13h00m00s",
-                "exper_nominal_stop": "2012y085d13h59m00s"
-            },
+                "m0325": {
+                    "mission_name": "mex",
+                    "vex_file_name": "m0325.vix",
+                    "exper_description": "mars express tracking test",
+                    "exper_nominal_start": "2012y085d13h00m00s",
+                    "exper_nominal_stop": "2012y085d13h59m00s"
+                },
 
-            "m0327": {
-                "mission_name": "mex",
-                "vex_file_name": "m0327.vix",
-                "exper_description": "mars express tracking test",
-                "exper_nominal_start": "2012y087d01h30m00s",
-                "exper_nominal_stop": "2012y087d02h49m00s"
-            },
+                "m0327": {
+                    "mission_name": "mex",
+                    "vex_file_name": "m0327.vix",
+                    "exper_description": "mars express tracking test",
+                    "exper_nominal_start": "2012y087d01h30m00s",
+                    "exper_nominal_stop": "2012y087d02h49m00s"
+                },
 
-            "m0403": {
-                "mission_name": "mex",
-                "vex_file_name": "m0403.vix",
-                "exper_description": "mars express tracking test",
-                "exper_nominal_start": "2012y087d01h30m00s",
-                "exper_nominal_stop": "2012y087d02h49m00s"
-            },
+                "m0403": {
+                    "mission_name": "mex",
+                    "vex_file_name": "m0403.vix",
+                    "exper_description": "mars express tracking test",
+                    "exper_nominal_start": "2012y087d01h30m00s",
+                    "exper_nominal_stop": "2012y087d02h49m00s"
+                },
 
-            "ed045a": {
-                "mission_name": "min",
-                "vex_file_name": "ed045a.vix",
-                "exper_description": "min tracking",
-                "exper_nominal_start": "2020y053d01h30m00s",
-                "exper_nominal_stop": "2020y053d03h00m00s"
-            },
-            "ed045c": {
-                "mission_name": "min",
-                "vex_file_name": "ed045c.vix",
-                "exper_description": "min tracking",
-                "exper_nominal_start": "2020y150d08h00m00s",
-                "exper_nominal_stop": "2020y150d09h30m00s"
-            },
-            "ed045d": {
-                "mission_name": "min",
-                "vex_file_name": "ed045d.vix",
-                "exper_description": "min tracking",
-                "exper_nominal_start": "2020y151d08h30m00s",
-                "exper_nominal_stop": "2020y151d10h00m00s"
-            },
-            "ed045e": {
-                "mission_name": "min",
-                "vex_file_name": "ed045e.vix",
-                "exper_description": "min tracking",
-                "exper_nominal_start": "2020y295d02h45m00s",
-                "exper_nominal_stop": "2020y295d04h15m00s"
-            },
-            "ed045f": {
-                "mission_name": "min",
-                "vex_file_name": "ed045f.vix",
-                "exper_description": "min tracking",
-                "exper_nominal_start": "2020y296d02h45m00s",
-                "exper_nominal_stop": "2020y296d04h15m00s"
-            },
+                "ed045a": {
+                    "mission_name": "min",
+                    "vex_file_name": "ed045a.vix",
+                    "exper_description": "min tracking",
+                    "exper_nominal_start": "2020y053d01h30m00s",
+                    "exper_nominal_stop": "2020y053d03h00m00s"
+                },
+                "ed045c": {
+                    "mission_name": "min",
+                    "vex_file_name": "ed045c.vix",
+                    "exper_description": "min tracking",
+                    "exper_nominal_start": "2020y150d08h00m00s",
+                    "exper_nominal_stop": "2020y150d09h30m00s"
+                },
+                "ed045d": {
+                    "mission_name": "min",
+                    "vex_file_name": "ed045d.vix",
+                    "exper_description": "min tracking",
+                    "exper_nominal_start": "2020y151d08h30m00s",
+                    "exper_nominal_stop": "2020y151d10h00m00s"
+                },
+                "ed045e": {
+                    "mission_name": "min",
+                    "vex_file_name": "ed045e.vix",
+                    "exper_description": "min tracking",
+                    "exper_nominal_start": "2020y295d02h45m00s",
+                    "exper_nominal_stop": "2020y295d04h15m00s"
+                },
+                "ed045f": {
+                    "mission_name": "min",
+                    "vex_file_name": "ed045f.vix",
+                    "exper_description": "min tracking",
+                    "exper_nominal_start": "2020y296d02h45m00s",
+                    "exper_nominal_stop": "2020y296d04h15m00s"
+                },
 
-            "ec094a": {
-                "mission_name": "juice",
-                "vex_file_name": "ec094a.vix",
-                "exper_description": "JUICE tracking",
-                "exper_nominal_start": "2023y292d14h00m00s",
-                "exper_nominal_stop": "2023y292d16h00m00s"
-            },
+                "ec094a": {
+                    "mission_name": "juice",
+                    "vex_file_name": "ec094a.vix",
+                    "exper_description": "JUICE tracking",
+                    "exper_nominal_start": "2023y292d14h00m00s",
+                    "exper_nominal_stop": "2023y292d16h00m00s"
+                },
 
-            "ec094b": {
-                "mission_name": "juice",
-                "vex_file_name": "ec094b.vix",
-                "exper_description": "JUICE tracking",
-                "exper_nominal_start": "2024y066d05h30m00s",
-                "exper_nominal_stop": "2024y066d07h30m00s"
-            },
+                "ec094b": {
+                    "mission_name": "juice",
+                    "vex_file_name": "ec094b.vix",
+                    "exper_description": "JUICE tracking",
+                    "exper_nominal_start": "2024y066d05h30m00s",
+                    "exper_nominal_stop": "2024y066d07h30m00s"
+                },
 
-            "ec064": {
-                "mission_name": ["mro", 'mex', 'tgo'],
-                "vex_file_name": "ec064.vix",
-                "experiment_description": "MRO-TGO-MEX tracking",
-                "exper_nominal_start": "2020y053d01h30m00s",
-                "exper_nominal_stop": "2020y053d03h00m00s"
-            },
+                "ec064": {
+                    "mission_name": ["mro", 'mex', 'tgo'],
+                    "vex_file_name": "ec064.vix",
+                    "experiment_description": "MRO-TGO-MEX tracking",
+                    "exper_nominal_start": "2020y053d01h30m00s",
+                    "exper_nominal_stop": "2020y053d03h00m00s"
+                },
 
-            "v140314": {
-                "mission_name": "vex",
-                "vex_file_name": "v0314.vix",
-                "experiment_description": "VEX tracking",
-                "exper_nominal_start": "2014y073d08h30m00s",
-                "exper_nominal_stop": "2014y073d11h29m00s"
-            },
+                "v140314": {
+                    "mission_name": "vex",
+                    "vex_file_name": "v0314.vix",
+                    "experiment_description": "VEX tracking",
+                    "exper_nominal_start": "2014y073d08h30m00s",
+                    "exper_nominal_stop": "2014y073d11h29m00s"
+                },
 
-        }
+            }
 
             self.spacecraft_data = {
-            "aka": {
-                "mission_name": "akatsuki",
-                "frequency_MHz": 8410.926,
-                "antenna": "Ww",
-                "snr": 0,
-                "stochastic_noise": "0",
-                "updated": "00.00.2010"
-            },
-            "bco": {
-                "mission_name": "bepi colombo",
-                "frequency_MHz": 8420.293,
-                "antenna": "Cd",
-                "snr": 6317,
-                "stochastic_noise": "84 mHz",
-                "updated": "17.02.2021"
-            },
-            "tgo": {
-                "mission_name": "exomars - trace gas orbiter",
-                "frequency_MHz": 8410.710,
-                "antenna": "Ht",
-                "snr": 11500,
-                "stochastic_noise": "90 mHz",
-                "updated": "29.07.2017"
-            },
-            "exo": {
-                "mission_name": "exomars",
-                "frequency_MHz": 8424.592,
-                "antenna": "Xx",
-                "snr": 0,
-                "stochastic_noise": "0",
-                "updated": "00.00.0000"
-            },
-            "gai": {
-                "mission_name": "gaia",
-                "frequency_MHz": "xxxx.xxx",
-                "antenna": "Xx",
-                "snr": 0,
-                "stochastic_noise": "0",
-                "updated": "00.00.0000"
-            },
+                "aka": {
+                    "mission_name": "akatsuki",
+                    "frequency_MHz": 8410.926,
+                    "antenna": "Ww",
+                    "snr": 0,
+                    "stochastic_noise": "0",
+                    "updated": "00.00.2010"
+                },
+                "bco": {
+                    "mission_name": "bepi colombo",
+                    "frequency_MHz": 8420.293,
+                    "antenna": "Cd",
+                    "snr": 6317,
+                    "stochastic_noise": "84 mHz",
+                    "updated": "17.02.2021"
+                },
+                "tgo": {
+                    "mission_name": "exomars - trace gas orbiter",
+                    "frequency_MHz": 8410.710,
+                    "antenna": "Ht",
+                    "snr": 11500,
+                    "stochastic_noise": "90 mHz",
+                    "updated": "29.07.2017"
+                },
+                "exo": {
+                    "mission_name": "exomars",
+                    "frequency_MHz": 8424.592,
+                    "antenna": "Xx",
+                    "snr": 0,
+                    "stochastic_noise": "0",
+                    "updated": "00.00.0000"
+                },
+                "gai": {
+                    "mission_name": "gaia",
+                    "frequency_MHz": "xxxx.xxx",
+                    "antenna": "Xx",
+                    "snr": 0,
+                    "stochastic_noise": "0",
+                    "updated": "00.00.0000"
+                },
 
-            "her": {
-                "mission_name": "herschell",
-                "frequency_MHz": "xxxx.xxx",
-                "antenna": "Xx",
-                "snr": 0,
-                "stochastic_noise": "0",
-                "updated": "00.00.0000"
-            },
-            "huy": {
-                "mission_name": "huygens",
-                "frequency_MHz": "xxxx.xxx",
-                "antenna": "Xx",
-                "snr": 0,
-                "stochastic_noise": "0",
-                "updated": "00.00.0000"
-            },
-            "ika": {
-                "mission_name": "ikaros",
-                "frequency_MHz": 8431.296,
-                "antenna": "Ww",
-                "snr": 0,
-                "stochastic_noise": "0",
-                "updated": "00.00.2010"
-            },
-            "jno": {
-                "mission_name": "juno",
-                "frequency_MHz": 8403.523,
-                "antenna": "Ho",
-                "snr": 450,
-                "stochastic_noise": "150 mHz",
-                "updated": "07.09.2020"
-            },
-            "mex": {
-                "mission_name": "mars express",
-                "frequency_MHz": 8420.750,
-                "antenna": "Cd",
-                "snr": 10000,
-                "stochastic_noise": "30 mHz",
-                "updated": "22.02.2020"
-            },
-            "min": {
-                "mission_name": "mars insight",
-                "frequency_MHz": 8404.502,
-                "antenna": "T6",
-                "snr": 120,
-                "stochastic_noise": "300 mHz",
-                "updated": "25.07.2020"
-            },
-            "mod": {
-                "mission_name": "mars odyssey",
-                "frequency_MHz": 8407.250,
-                "antenna": "Cd",
-                "snr": 360,
-                "stochastic_noise": "830 mHz",
-                "updated": "22.02.2020"
-            },
-            "mom": {
-                "mission_name": "mars orbiter mission",
-                "frequency_MHz": "xxxx.xxx",
-                "antenna": "Xx",
-                "snr": 0,
-                "stochastic_noise": "0",
-                "updated": "00.00.0000"
-            },
-            "perseverance": {
-                "mission_name": "perseverance",
-                "frequency_MHz": 8435.550,
-                "antenna": "Cd",
-                "snr": 115000,
-                "stochastic_noise": "88 mHz",
-                "updated": "18.02.2021"
-            },
-            "m20": {
-                "mission_name": "mars2020",
-                "frequency_MHz": 8415.000,
-                "antenna": "??",
-                "snr": 0,
-                "stochastic_noise": "0",
-                "updated": "00.00.0000"
-            },
-            "mro": {
-                "mission_name": "mars reconnaissance orbiter",
-                "frequency_MHz": 8439.750,
-                "antenna": "Cd",
-                "snr": 30,
-                "stochastic_noise": "23.70 Hz",
-                "updated": "22.02.2020"
-            },
-            "mvn": {
-                "mission_name": "maven",
-                "frequency_MHz": 8446.235,
-                "antenna": "Xx",
-                "snr": 0,
-                "stochastic_noise": "0",
-                "updated": "00.00.0000"
-            },
-            "curiosity": {
-                "mission_name": "curiosity",
-                "frequency_MHz": 8402.777,
-                "antenna": None,
-                "snr": None,
-                "stochastic_noise": None,
-                "updated": None
-            },
-            "hope": {
-                "mission_name": "hope",
-                "frequency_MHz": 8401.419,
-                "antenna": None,
-                "snr": None,
-                "stochastic_noise": None,
-                "updated": None
-            },
-            "ras": {
-                "mission_name": "radio astron",
-                "frequency_MHz": 8399.700,
-                "antenna": "Wz",
-                "snr": 32000,
-                "stochastic_noise": "3 mHz",
-                "updated": "29.09.2012"
-            },
-            "ros": {
-                "mission_name": "rosetta",
-                "frequency_MHz": 8421.875,
-                "antenna": "Mh",
-                "snr": 898,
-                "stochastic_noise": "40 mHz",
-                "updated": "01.04.2016"
-            },
-            "sta": {
-                "mission_name": "stereo ab",
-                "frequency_MHz": 8446.230,
-                "antenna": "Wz",
-                "snr": 3000,
-                "stochastic_noise": "200 mHz",
-                "updated": "06.02.2012"
-            },
-            "tiw": {
-                "mission_name": "tianwen-1",
-                "frequency_MHz": 8429.938,
-                "antenna": "Cd",
-                "snr": None,
-                "stochastic_noise": "1.0",
-                "updated": "01.04.2021"
-            },
-            "uly": {
-                "mission_name": "ulysses",
-                "frequency_MHz": "xxxx.xxx",
-                "antenna": "Xx",
-                "snr": 0,
-                "stochastic_noise": "0",
-                "updated": "00.00.0000"
-            },
-            "vex": {
-                "mission_name": "venus express",
-                "frequency_MHz": 8418.100,
-                "antenna": "Ht",
-                "snr": 9500,
-                "stochastic_noise": "26 mHz",
-                "updated": "21.04.2011"
-            },
-            "juc": {
-                "mission_name": "juice",
-                "frequency_MHz": 8435.5, #mas said file says: 8435-8436, so i put 8435.5
-                "antenna": None,
-                "snr": None,
-                "stochastic_noise": None,
-                "updated": None
+                "her": {
+                    "mission_name": "herschell",
+                    "frequency_MHz": "xxxx.xxx",
+                    "antenna": "Xx",
+                    "snr": 0,
+                    "stochastic_noise": "0",
+                    "updated": "00.00.0000"
+                },
+                "huy": {
+                    "mission_name": "huygens",
+                    "frequency_MHz": "xxxx.xxx",
+                    "antenna": "Xx",
+                    "snr": 0,
+                    "stochastic_noise": "0",
+                    "updated": "00.00.0000"
+                },
+                "ika": {
+                    "mission_name": "ikaros",
+                    "frequency_MHz": 8431.296,
+                    "antenna": "Ww",
+                    "snr": 0,
+                    "stochastic_noise": "0",
+                    "updated": "00.00.2010"
+                },
+                "jno": {
+                    "mission_name": "juno",
+                    "frequency_MHz": 8403.523,
+                    "antenna": "Ho",
+                    "snr": 450,
+                    "stochastic_noise": "150 mHz",
+                    "updated": "07.09.2020"
+                },
+                "mex": {
+                    "mission_name": "mars express",
+                    "frequency_MHz": 8420.750,
+                    "antenna": "Cd",
+                    "snr": 10000,
+                    "stochastic_noise": "30 mHz",
+                    "updated": "22.02.2020"
+                },
+                "min": {
+                    "mission_name": "mars insight",
+                    "frequency_MHz": 8404.502,
+                    "antenna": "T6",
+                    "snr": 120,
+                    "stochastic_noise": "300 mHz",
+                    "updated": "25.07.2020"
+                },
+                "mod": {
+                    "mission_name": "mars odyssey",
+                    "frequency_MHz": 8407.250,
+                    "antenna": "Cd",
+                    "snr": 360,
+                    "stochastic_noise": "830 mHz",
+                    "updated": "22.02.2020"
+                },
+                "mom": {
+                    "mission_name": "mars orbiter mission",
+                    "frequency_MHz": "xxxx.xxx",
+                    "antenna": "Xx",
+                    "snr": 0,
+                    "stochastic_noise": "0",
+                    "updated": "00.00.0000"
+                },
+                "perseverance": {
+                    "mission_name": "perseverance",
+                    "frequency_MHz": 8435.550,
+                    "antenna": "Cd",
+                    "snr": 115000,
+                    "stochastic_noise": "88 mHz",
+                    "updated": "18.02.2021"
+                },
+                "m20": {
+                    "mission_name": "mars2020",
+                    "frequency_MHz": 8415.000,
+                    "antenna": "??",
+                    "snr": 0,
+                    "stochastic_noise": "0",
+                    "updated": "00.00.0000"
+                },
+                "mro": {
+                    "mission_name": "mars reconnaissance orbiter",
+                    "frequency_MHz": 8439.750,
+                    "antenna": "Cd",
+                    "snr": 30,
+                    "stochastic_noise": "23.70 Hz",
+                    "updated": "22.02.2020"
+                },
+                "mvn": {
+                    "mission_name": "maven",
+                    "frequency_MHz": 8446.235,
+                    "antenna": "Xx",
+                    "snr": 0,
+                    "stochastic_noise": "0",
+                    "updated": "00.00.0000"
+                },
+                "curiosity": {
+                    "mission_name": "curiosity",
+                    "frequency_MHz": 8402.777,
+                    "antenna": None,
+                    "snr": None,
+                    "stochastic_noise": None,
+                    "updated": None
+                },
+                "hope": {
+                    "mission_name": "hope",
+                    "frequency_MHz": 8401.419,
+                    "antenna": None,
+                    "snr": None,
+                    "stochastic_noise": None,
+                    "updated": None
+                },
+                "ras": {
+                    "mission_name": "radio astron",
+                    "frequency_MHz": 8399.700,
+                    "antenna": "Wz",
+                    "snr": 32000,
+                    "stochastic_noise": "3 mHz",
+                    "updated": "29.09.2012"
+                },
+                "ros": {
+                    "mission_name": "rosetta",
+                    "frequency_MHz": 8421.875,
+                    "antenna": "Mh",
+                    "snr": 898,
+                    "stochastic_noise": "40 mHz",
+                    "updated": "01.04.2016"
+                },
+                "sta": {
+                    "mission_name": "stereo ab",
+                    "frequency_MHz": 8446.230,
+                    "antenna": "Wz",
+                    "snr": 3000,
+                    "stochastic_noise": "200 mHz",
+                    "updated": "06.02.2012"
+                },
+                "tiw": {
+                    "mission_name": "tianwen-1",
+                    "frequency_MHz": 8429.938,
+                    "antenna": "Cd",
+                    "snr": None,
+                    "stochastic_noise": "1.0",
+                    "updated": "01.04.2021"
+                },
+                "uly": {
+                    "mission_name": "ulysses",
+                    "frequency_MHz": "xxxx.xxx",
+                    "antenna": "Xx",
+                    "snr": 0,
+                    "stochastic_noise": "0",
+                    "updated": "00.00.0000"
+                },
+                "vex": {
+                    "mission_name": "venus express",
+                    "frequency_MHz": 8418.100,
+                    "antenna": "Ht",
+                    "snr": 9500,
+                    "stochastic_noise": "26 mHz",
+                    "updated": "21.04.2011"
+                },
+                "juc": {
+                    "mission_name": "juice",
+                    "frequency_MHz": 8435.5, #mas said file says: 8435-8436, so i put 8435.5
+                    "antenna": None,
+                    "snr": None,
+                    "stochastic_noise": None,
+                    "updated": None
+                }
             }
-        }
 
 
             self.antenna_diameters = {
@@ -937,8 +860,8 @@ class PrideDopplerCharacterization:
 
             # Return the MJD date
             return delta.days + (delta.seconds / 86400.0)
-        
-        
+
+
         def mission_name_to_horizons_target(self, mission_name):
             """
             Description
@@ -954,25 +877,25 @@ class PrideDopplerCharacterization:
             """
 
             self.horizons_targets = {
-            "mex": {
-                "target": "-41",
-            },
+                "mex": {
+                    "target": "-41",
+                },
 
-            "juice":{
-                "target": "2023-053A",
-            },
+                "juice":{
+                    "target": "2023-053A",
+                },
 
-            "min":{
-                "target": "2018-042A"
-            },
+                "min":{
+                    "target": "2018-042A"
+                },
 
-            "mro":{
-                "target": "2005-029A"
-            },
+                "mro":{
+                    "target": "2005-029A"
+                },
 
-            "vex":{
-                "target": "2005-045A"
-            }
+                "vex":{
+                    "target": "2005-045A"
+                }
 
             }
             # Convert input to uppercase for case-insensitive matching
@@ -2656,8 +2579,8 @@ class PrideDopplerCharacterization:
                     mission_name = values['mission_name']
                     return mission_name
 
-########################################################################################################################################
-########################################################################################################################################
+    ########################################################################################################################################
+    ########################################################################################################################################
 
     class Analysis:
         def __init__(self, process_fdets, utilities):
@@ -2975,118 +2898,129 @@ class PrideDopplerCharacterization:
 
         def plot_madev_stations(self, extracted_data_list, experiment_name, tau_min=None, tau_max=None, save_dir=None, suppress=False, color_regions=False):
             """
-            Plots Modified Allan Deviation (mADEV) and other relevant parameters, including error bounds.
-
-            Supports multiple extracted_data inputs (e.g., from different stations), plotting them in the same figure.
+            Plots Modified Allan Deviation (mADEV) and saves one plot per unique date and corresponding data to CSV files.
 
             Args:
                 extracted_data_list (list): List of extracted_data dicts, each containing:
                                             - utc_datetime, signal_to_noise, doppler_noise_hz, frequency_detection, base_frequency, etc.
                 tau_min (float, optional): Minimum tau for filtering.
                 tau_max (float, optional): Maximum tau for filtering.
-                save_dir (str, optional): Directory to save the plot.
+                save_dir (str, optional): Directory to save the plots and CSVs.
                 suppress (bool, optional): If True, does not show the plot.
-                plot_madev_only (bool, optional): If True, only plots mADEV.
                 color_regions (bool, optional): Enables color-coding regions based on error bounds.
-
             """
 
             if not isinstance(extracted_data_list, list):
-                extracted_data_list = [extracted_data_list]  # Ensure list format
+                extracted_data_list = [extracted_data_list]
 
-            # Extract all unique days
+            # Extract all unique dates
             unique_dates_set = set()
             for extracted_data in extracted_data_list:
                 utc_datetime = extracted_data['utc_datetime']
                 unique_dates_set.update(day.strftime('%Y-%m-%d') for day in utc_datetime)
 
-            unique_dates_list = sorted(list(unique_dates_set))  # Sort for chronological order
+            unique_dates_list = sorted(list(unique_dates_set))  # Chronological order
 
-            # Create subplots
-            num_days = len(unique_dates_list)
-            fig, axs = plt.subplots(num_days, 1, figsize=(10, 5 * num_days), sharex=True)
+            colors = cm.get_cmap('tab10', len(extracted_data_list))  # Unique colors per station
 
-            if num_days == 1:
-                axs = [axs]
+            if save_dir and not os.path.exists(save_dir):
+                os.makedirs(save_dir)
 
-            colors = cm.get_cmap('tab10', len(extracted_data_list))  # Assign unique colors
+            for date in unique_dates_list:
+                fig, ax = plt.subplots(figsize=(10, 5))
+                output_rows = []  # For CSV
 
-            for i, extracted_data in enumerate(extracted_data_list):
-                color = colors(i)
+                for i, extracted_data in enumerate(extracted_data_list):
+                    color = colors(i)
+                    receiving_station_name = extracted_data['receiving_station_name']
+                    utc_datetime = extracted_data['utc_datetime']
+                    doppler_noise_hz = extracted_data['doppler_noise_hz']
+                    frequency_detection = extracted_data['frequency_detection']
+                    base_frequency = extracted_data['base_frequency']
 
-                # Extract Data
-                receiving_station_name = extracted_data['receiving_station_name']
-                #if receiving_station_name in ['Mh', 'Ht']: # for MEX (Vidhya's paper)
-                #    continue
-                utc_datetime = extracted_data['utc_datetime']
-                doppler_noise_hz = extracted_data['doppler_noise_hz']
-                frequency_detection = extracted_data['frequency_detection']
-                base_frequency = extracted_data['base_frequency']
+                    # Determine sampling rate
+                    t_jd = np.array([Time(time).jd for time in utc_datetime])
+                    diffs = np.diff(t_jd)
+                    most_common_diff = Counter(diffs).most_common(1)
 
-                # Compute Sampling Rate
-                t_jd = np.array([Time(time).jd for time in utc_datetime])
-                diffs = np.diff(t_jd)
-                most_common_diff = Counter(diffs).most_common(1)
+                    if not most_common_diff or most_common_diff[0][0] == 0:
+                        print(f"Skipping dataset {i+1}: Cannot determine sampling rate.")
+                        continue
 
-                if not most_common_diff or most_common_diff[0][0] == 0:
-                    print(f"Skipping dataset {i+1}: Cannot determine sampling rate.")
-                    continue
+                    rate_fdets = 1 / (most_common_diff[0][0] * 86400)
 
-                rate_fdets = 1 / (most_common_diff[0][0] * 86400)
+                    # Compute mADEV
+                    try:
+                        taus, mdev, errors, _ = allantools.mdev(
+                            np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
+                            rate=rate_fdets,
+                            data_type='freq',
+                            taus='decade'
+                        )
+                    except Exception as e:
+                        print(f"Skipping dataset {i+1} due to error in Allan deviation computation: {e}")
+                        continue
 
-                # Compute Modified Allan Deviation (mADEV)
-                try:
-                    taus, mdev, errors, _ = allantools.mdev(
-                        np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
-                        rate=rate_fdets,
-                        data_type='freq',
-                        taus='decade'
-                    )
-                except Exception as e:
-                    print(f"Skipping dataset {i+1} due to error in Allan deviation computation: {e}")
-                    continue
+                    # Filter tau range
+                    tau_mask = np.ones_like(taus, dtype=bool)
+                    if tau_min is not None:
+                        tau_mask &= taus >= tau_min
+                    if tau_max is not None:
+                        tau_mask &= taus <= tau_max
 
-                # Filter tau range
-                if tau_min is not None:
-                    taus = taus[taus >= tau_min]
-                if tau_max is not None:
-                    taus = taus[taus <= tau_max]
+                    taus = taus[tau_mask]
+                    mdev = np.array(mdev)[tau_mask]
+                    errors = np.array(errors)[tau_mask]
 
-                # Generate the white noise reference line
-                mdev_white = [mdev[0]]  # Initialize with the first value
-                for i in range(1, len(taus)):
-                    mdev_white.append(mdev[0] * (taus[i] / taus[0])**(-1/2))
-
-                # Plot mADEV in the corresponding subplot for each day
-                for date in unique_dates_list:
+                    # Only use data from this date
                     date_data_mask = [d.strftime('%Y-%m-%d') == date for d in utc_datetime]
-                    if any(date_data_mask):
-                        ax = axs[unique_dates_list.index(date)]
-                        ax.errorbar(taus, np.array(mdev)[:len(taus)], yerr=np.array(errors)[:len(taus)], fmt='o', markersize=3, linestyle='dashed', color=color, label=receiving_station_name)
+                    if not any(date_data_mask):
+                        continue
 
-                        ax.set_xscale("log")
-                        ax.set_yscale("log")
-                        ax.set_xlabel('Averaging Time (s)')
-                        ax.set_ylabel('Modified Allan Deviation')
-                        ax.set_title(f'Experiment {experiment_name} on {date}')
+                    # Plot
+                    ax.errorbar(taus, mdev, yerr=errors, fmt='o', markersize=3, linestyle='dashed',
+                                color=color, label=receiving_station_name)
 
-                        # Apply custom ticks
-                        log_ticks_x = np.logspace(np.log10(taus[0]), np.log10(taus[-1]), num=10)
-                        valid_xticks = np.searchsorted(taus, log_ticks_x)
-                        valid_xticks = valid_xticks[valid_xticks < len(taus)]
-                        ax.set_xticks(taus[valid_xticks])
-                        ax.set_xlim(9, 110)
-                        ax.set_xticklabels([f"{round(tick)}" for tick in taus[valid_xticks]])
+                    # Save rows for CSV
+                    for t, m, e in zip(taus, mdev, errors):
+                        output_rows.append([t, m, e, receiving_station_name])
 
-                        ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
-                        ax.grid(True, which="both", ls="--", alpha = 0.3)
+                # Finalize plot
+                ax.set_xscale("log")
+                ax.set_yscale("log")
+                ax.set_xlabel('Averaging Time (s)')
+                ax.set_ylabel('Modified Allan Deviation')
+                ax.set_title(f'Experiment {experiment_name} on {date}')
+                ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+                ax.grid(True, which="both", ls="--", alpha=0.3)
 
-            plt.tight_layout()
+                log_ticks_x = np.logspace(np.log10(taus[0]), np.log10(taus[-1]), num=10)
+                valid_xticks = np.searchsorted(taus, log_ticks_x)
+                valid_xticks = valid_xticks[valid_xticks < len(taus)]
+                ax.set_xticks(taus[valid_xticks])
+                ax.set_xlim(9, 110)
+                ax.set_xticklabels([f"{round(tick)}" for tick in taus[valid_xticks]])
 
-            if save_dir:
-                plt.savefig(save_dir + experiment_name + '_mad.png')
-            if not suppress:
-                plt.show()
+                plt.tight_layout()
+
+                # Save plot
+                if save_dir:
+                    fig_path = os.path.join(save_dir, f"{experiment_name}_{date}_mad.png")
+                    plt.savefig(fig_path)
+
+                if not suppress:
+                    plt.show()
+
+                plt.close(fig)
+
+                # Save CSV
+                if save_dir and output_rows:
+                    csv_path = os.path.join(save_dir, f"{experiment_name}_{date}_mad.csv")
+                    with open(csv_path, 'w', newline='') as f:
+                        writer = csv.writer(f)
+                        writer.writerow(["Tau (s)", "Modified Allan Deviation", "Error", "Station"])
+                        writer.writerows(output_rows)
+
 
         def get_all_stations_madev_plot(self, fdets_folder_path, experiment_name, extracted_parameters_list = None, tau_min = None, tau_max = None, suppress = False, plot_madev_only = True, save_dir = None):
 
@@ -3246,7 +3180,7 @@ class PrideDopplerCharacterization:
             print(f'...Done.\n')
 
         ########################################################################################################################################
-########################################################################################################################################
+        ########################################################################################################################################
 
         ########################################################################################################################################
         ########################################################################################################################################
@@ -3637,8 +3571,8 @@ class PrideDopplerCharacterization:
                 if not suppress:
                     plt.show()
 
-    ########################################################################################################################################
-########################################################################################################################################
+        ########################################################################################################################################
+        ########################################################################################################################################
 
         def get_doppler_noise_statistics(self, extracted_data_list, experiment_name, save_dir=None, suppress=False, remove_outliers = False):
             """
@@ -4081,8 +4015,11 @@ class PrideDopplerCharacterization:
                 suppress (bool): Flag to suppress plot display.
                 save_dir (str): Directory to save the plot.
             """
+            print(files_list)
+            print(station_ids)
             station_names = [self.Utilities.ID_to_site(site_ID) for site_ID in station_ids if site_ID is not None]
             geodetic_states = [self.Utilities.site_to_geodetic_position(station_name) for station_name in station_names]
+            print(geodetic_states)
             fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
 
             plt.figure(figsize=(13, 10))  # Initialize the plot
