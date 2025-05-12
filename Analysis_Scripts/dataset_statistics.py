@@ -56,8 +56,8 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             color_dict[experiment_name] = generate_random_color()
 
         # Define paths for input and output directories
-        fdets_folder_path = '/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/min/ed045a/input/complete'
-        output_dir =  '/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/min/ed045a/output'
+        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/ed045e/input/complete'
+        output_dir =  f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/ed045e/output/'
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
             continue
