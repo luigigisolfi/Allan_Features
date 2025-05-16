@@ -772,6 +772,7 @@ class PrideDopplerCharacterization:
             self.antenna_diameters = {
                 'Cd': 30,   # Ceduna
                 'Hb': 12,   # Hobart 12m
+                'Ho': 26,    # Hobart 26
                 'Yg': 12,   # Yarragadee 12m
                 'Ke': 12,   # Katherine 12m
                 'Ww': 12,   # Warkworth
@@ -1117,6 +1118,7 @@ class PrideDopplerCharacterization:
             site_to_id_mapping = {
                 'CEDUNA': 'Cd',
                 'HOBART12': 'Hb',
+                'HOBART26': 'Ho',
                 'YARRA12M': 'Yg',
                 'KATH12M': 'Ke',
                 'WARK': 'Ww',
@@ -1173,6 +1175,7 @@ class PrideDopplerCharacterization:
             id_to_site_mapping = {
                 'Cd': 'CEDUNA',
                 'Hb': 'HOBART12',
+                'Ho': 'HOBART26',
                 'Yg': 'YARRA12M',
                 'Ke': 'KATH12M',
                 'Ww': 'WARK',

@@ -40,7 +40,7 @@ analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
 experiments_to_analyze = {
-    'vex': ["v141101","v141102", "v141103", "v141106", "v141109", "v141110", "v141116", "v141117", "v141120", "v141122","v141123", "v141124","v141126", "v141127"]
+    'juice': ["jc230417", "jc230420", "jc230421", "jc230422", "jc230424", "jc230426", "jc230502", "jc230504", "jc230508", "jc230914"]
 }
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
@@ -57,8 +57,8 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             color_dict[experiment_name] = generate_random_color()
 
         # Define paths for input and output directories
-        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/usable/converted_old_format_files/{experiment_name}/input/complete'
-        output_dir =  f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/usable/converted_old_format_files/{experiment_name}/output/'
+        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/{experiment_name}/input/complete'
+        output_dir =  f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/{experiment_name}/output/'
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
             continue
@@ -129,11 +129,11 @@ for mission_name, experiment_names in experiments_to_analyze.items():
 
                 # Save mean and RMS values
                 mean_rms_user_defined_parameters[experiment_name].append({station_code:
-                                                     {'mean_snr': np.mean(filtered_snr),
-                                                      'rms_snr': np.std(filtered_snr),
-                                                      'mean_doppler_noise': np.mean(filtered_doppler_noise),
-                                                      'rms_doppler_noise': np.std(filtered_doppler_noise),
-                                                      }})
+                                                                              {'mean_snr': np.mean(filtered_snr),
+                                                                               'rms_snr': np.std(filtered_snr),
+                                                                               'mean_doppler_noise': np.mean(filtered_doppler_noise),
+                                                                               'rms_doppler_noise': np.std(filtered_doppler_noise),
+                                                                               }})
 
         # Analyze elevation files
         for file in os.listdir(elevation_dir):
@@ -144,13 +144,15 @@ for mission_name, experiment_names in experiments_to_analyze.items():
                 station_code = 'On'
             if file.endswith('.txt'):
                 mean_elevation = analysis.get_mean_elevation_from_file(os.path.join(elevation_dir, file))
+                print(os.path.join(elevation_dir, file))
+                print(mean_elevation)
 
 
                 # Update mean elevation in the main dictionary
                 for entry in mean_rms_user_defined_parameters[experiment_name]:
-                    if station_code in entry:  # If station exists, update it
+                    if station_code in entry:
+                        print(entry)
                         entry[station_code]['mean_elevation'] = mean_elevation
-                        break  # No need to continue searching
 
 # Initialize labels and plot
 labels_snr = set()
@@ -165,11 +167,11 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
     aggregate = defaultdict(lambda: {'sum': 0, 'count': 0})
     # First pass: Compute the unweighted means for elevation, snr and rms snr
     for entry in mean_rms_user_defined_parameters[experiment_name]:
-            for station, values in entry.items():
-                for key, value in values.items():
-                    if key not in ['mean_doppler_noise', 'rms_doppler_noise']:
-                        aggregate[key]['sum'] += value
-                        aggregate[key]['count'] += 1
+        for station, values in entry.items():
+            for key, value in values.items():
+                if key not in ['mean_doppler_noise', 'rms_doppler_noise']:
+                    aggregate[key]['sum'] += value
+                    aggregate[key]['count'] += 1
 
     # Compute the mean values before applying weights
     mean_values_old = {key: aggregate[key]['sum'] / aggregate[key]['count'] for key in aggregate}
@@ -184,6 +186,8 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                     if key in ['mean_doppler_noise', 'rms_doppler_noise']:
                         aggregate_weighted[key]['sum'] += value * snr_weight
                         aggregate_weighted[key]['count'] += snr_weight
+            else:
+                continue
 
     # Compute the weighted mean values
     mean_values_new = {key: (aggregate_weighted[key]['sum'] / aggregate_weighted[key]['count'])*1000 for key in aggregate_weighted}
