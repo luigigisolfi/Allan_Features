@@ -1,6 +1,5 @@
 """
-DISCLAIMER: No Jupyter notebook is provided for this script so far, will be turned into a .ipynb later on. 
-This script might be useful in splitting long scans for quicker and targeted analysis.
+This script might be useful in splitting long scans for quicker and targeted analysis (for examples, mex gr035 are very long and dense).
 To use it with juice, just change the paths accordingly.
 """
 from tudatpy.interface import spice

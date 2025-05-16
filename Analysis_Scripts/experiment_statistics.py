@@ -40,14 +40,14 @@ analysis = pride.Analysis(process_fdets, utilities)
 # Define experiments to analyze
 # Select the experiment(s) for which data analysis will be performed
 experiments_to_analyze = {
-    'juice': ["jc230508", "jc230914"]
+    'juice': ["ec094b"]
 }
 # %%
 # Loop over missions and experiments
 for mission_name, experiment_names in experiments_to_analyze.items():
     for experiment_name in experiment_names:
-        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/{experiment_name}/input/complete'
-        output_dir =  f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/{experiment_name}/output'
+        fdets_folder_path = f'../small_dataset/{mission_name}/{experiment_name}/input/complete' #or insert your path
+        output_dir =  f'../small_dataset/{mission_name}/{experiment_name}/output/' #or insert your path
         horizons_target = utilities.mission_name_to_horizons_target(mission_name)
         print(f'Performing Statistical Analysis for mission: {mission_name} (Horizons Code: {horizons_target})...')
 

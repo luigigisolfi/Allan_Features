@@ -40,7 +40,7 @@ analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
 experiments_to_analyze = {
-    'juice': ["jc230417", "jc230420", "jc230421", "jc230422", "jc230424", "jc230426", "jc230502", "jc230504", "jc230508", "jc230914"]
+    'juice': ["ec094b"]
 }
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
@@ -57,8 +57,8 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             color_dict[experiment_name] = generate_random_color()
 
         # Define paths for input and output directories
-        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/{experiment_name}/input/complete'
-        output_dir =  f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/{experiment_name}/output/'
+        fdets_folder_path = f'../small_dataset/{mission_name}/{experiment_name}/input/complete' #or insert your path
+        output_dir =  f'../small_dataset/{mission_name}/{experiment_name}/output/' #or insert your path
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
             continue
@@ -144,14 +144,11 @@ for mission_name, experiment_names in experiments_to_analyze.items():
                 station_code = 'On'
             if file.endswith('.txt'):
                 mean_elevation = analysis.get_mean_elevation_from_file(os.path.join(elevation_dir, file))
-                print(os.path.join(elevation_dir, file))
-                print(mean_elevation)
 
 
                 # Update mean elevation in the main dictionary
                 for entry in mean_rms_user_defined_parameters[experiment_name]:
                     if station_code in entry:
-                        print(entry)
                         entry[station_code]['mean_elevation'] = mean_elevation
 
 # Initialize labels and plot

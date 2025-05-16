@@ -11,13 +11,13 @@ analysis = pride.Analysis(process_fdets, utilities)  # Create Analysis Object
 
 # %%
 # Experiments to analyze
-experiments_to_analyze = {'mex': ['gr035']}
+experiments_to_analyze = {'juice': ['ec094b']}
 
 # %%
 for mission_name, experiment_names in experiments_to_analyze.items():
     for experiment_name in experiment_names:
-        fdets_folder_path = '/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/mex/gr035/input/complete'
-        output_dir =  '/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/mex/gr035/output'
+        fdets_folder_path = f'../small_dataset/{mission_name}/{experiment_name}/input/complete' #or insert your path
+        output_dir =  f'../small_dataset/{mission_name}/{experiment_name}/output/' #or insert your path
         tau_min = 0
         tau_max = 100
         save_dir = output_dir

@@ -7,7 +7,6 @@ import random
 from scipy.interpolate import interp1d
 
 """
-DISCLAIMER: No Jupyter notebook is provided for this script so far, will be turned into a .ipynb later on. 
 This script was created to check the dependence of SNR on elevation, 
 but the fact that Horizons does not allow for ephemeris to be retrieved at steps < 1 min, together with the fact that - for some stations -
 the elevation plot has a maximum value, limits its applications.
@@ -26,15 +25,15 @@ process_fdets = pride.ProcessFdets()
 utilities = pride.Utilities()
 analysis = pride.Analysis(process_fdets, utilities)
 
-experiments_to_analyze = {'juice': ['ec094a', 'ec094b']}
+experiments_to_analyze = {'juice': ['ec094b']}
 mean_rms_user_defined_parameters = defaultdict(list)
 mean_elevations = defaultdict(list)
 color_dict = defaultdict(list)
 for mission_name, experiment_names in experiments_to_analyze.items():
     for experiment_name in experiment_names:
         color_dict[experiment_name] = generate_random_color()
-        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/input/complete/'
-        output_dir = f'/Users/lgisolfi/Desktop/data_archiving-1.0/dataset/{mission_name}/{experiment_name}/output'
+        fdets_folder_path = f'../small_dataset/{mission_name}/{experiment_name}/input/complete' #or insert your path
+        output_dir =  f'../small_dataset/{mission_name}/{experiment_name}/output/' #or insert your path
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
             continue
