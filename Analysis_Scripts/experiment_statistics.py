@@ -38,16 +38,16 @@ analysis = pride.Analysis(process_fdets, utilities)
 
 # %%
 # Define experiments to analyze
+# Select the experiment(s) for which data analysis will be performed
 experiments_to_analyze = {
-    'juice': ['ec094b']
+    'juice': ["jc230508", "jc230914"]
 }
-
 # %%
 # Loop over missions and experiments
 for mission_name, experiment_names in experiments_to_analyze.items():
     for experiment_name in experiment_names:
-        fdets_folder_path = '../small_dataset/juice/ec094b/input/complete/'
-        output_dir = '../small_dataset/juice/ec094b/output/'
+        fdets_folder_path = f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/{experiment_name}/input/complete'
+        output_dir =  f'/Users/lgisolfi/Desktop/data_archiving-2.0/{mission_name}/{experiment_name}/output'
         horizons_target = utilities.mission_name_to_horizons_target(mission_name)
         print(f'Performing Statistical Analysis for mission: {mission_name} (Horizons Code: {horizons_target})...')
 
@@ -64,9 +64,11 @@ for mission_name, experiment_names in experiments_to_analyze.items():
 
         for extracted_data in extracted_data_list:
             station_id = extracted_data['receiving_station_name']
+            print(station_id)
             for file_name in files_list:
-                if str(extracted_data['utc_date']) not in file_name:
-                    continue
+                #if str(extracted_data['utc_date']) not in file_name:
+                #    print(extracted_data['utc_date'])
+                #    continue
                 if station_id != process_fdets.get_station_name_from_file(file_name):
                     continue
                 else:

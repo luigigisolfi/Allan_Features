@@ -3,6 +3,9 @@ import shutil
 import pandas as pd
 import glob
 import re
+import sys
+sys.path.append('/Users/lgisolfi/ClionProjects/Allan_Features/Analysis_Scripts/') # Adjust this to your actual library location
+
 from pride_characterization_library  import PrideDopplerCharacterization
 
 pride = PrideDopplerCharacterization()
@@ -68,8 +71,7 @@ old_files = [shutil.copy(file, f'{file}'.replace("txt", "old")) for file in file
 # Loop through each file and process it
 for file in files:
     try:
-
-        if len(utilities.get_mission_from_experiment(experiment_name)) > 1:
+        if isinstance(utilities.get_mission_from_experiment(experiment_name), list):
             print(utilities.get_mission_from_experiment(experiment_name))
             for mission in utilities.get_mission_from_experiment(experiment_name):
                 if mission in file:
@@ -158,13 +160,11 @@ for file in files:
                 try:
                     match = re.match(baseband_patterns, fdets_header[1])
                     match_flag = True
-                    print('having a match', match)
                 except:
                     continue
 
             if not match_flag:
                 correct_baseband_value = process_vex_files.get_baseband_frequency(mission_name, experiment_name, file)
-                print('correct baseband', correct_baseband_value)
                 try:
                     corrected_header = f"Base frequency: {correct_baseband_value} MHz\n"
                     fdets_header[1] = corrected_header  # Update the second header line with corrected frequency

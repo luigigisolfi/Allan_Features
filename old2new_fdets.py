@@ -6,6 +6,9 @@ from astropy.time import Time, TimeDelta
 import glob
 import os
 import re
+import sys
+sys.path.append('/Users/lgisolfi/ClionProjects/Allan_Features/Analysis_Scripts/') # Adjust this to your actual library location
+
 from pride_characterization_library  import PrideDopplerCharacterization
 
 pride = PrideDopplerCharacterization()

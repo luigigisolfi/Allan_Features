@@ -3,10 +3,12 @@ DISCLAIMER: No Jupyter notebook is provided for this script so far, will be turn
 This script might be useful in splitting long scans for quicker and targeted analysis.
 To use it with juice, just change the paths accordingly.
 """
-
-from pride_characterization_library import PrideDopplerCharacterization
 from tudatpy.interface import spice
 import os
+import sys
+sys.path.append('/Users/lgisolfi/ClionProjects/Allan_Features/Analysis_Scripts/') # Adjust this to your actual library location
+from pride_characterization_library import PrideDopplerCharacterization
+
 spice.load_standard_kernels()
 pride = PrideDopplerCharacterization()
 process_fdets = pride.ProcessFdets()
