@@ -41,7 +41,7 @@ analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
 experiments_to_analyze = {
-    'mro': ["ec064"]
+    'juice': ["ec094b"]
 }
 bad_obs_flag = False
 # Create empty dictionaries to be filled with meaningful values
