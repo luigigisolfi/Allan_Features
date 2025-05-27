@@ -3,6 +3,8 @@
 
 # %% [markdown]
 """
+# This script was used on the PRIDE_DATA folder to produce Vidhya's paper plots.
+# This script has the division by EXPERIMENT NAMES. If you want the division by times, check dataset_statistics_by_time.
 This script analyzes radio science experiments for JUICE
 computing and plotting Key Performance Indicators (KPIs) such as mean Signal-to-Noise Ratio (SNR),
 rms SNR, mean Doppler noise, and mean elevation angle across multiple ground stations.
@@ -16,7 +18,6 @@ The workflow includes:
 Requirements:
     - The data files where the KPIs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
 """
-
 # %%
 from pride_characterization_library import PrideDopplerCharacterization
 import os
@@ -40,8 +41,9 @@ analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
 experiments_to_analyze = {
-    'juice': ["ec094b"]
+    'mro': ["ec064"]
 }
+bad_obs_flag = False
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
 mean_elevations = defaultdict(list)
@@ -57,8 +59,11 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             color_dict[experiment_name] = generate_random_color()
 
         # Define paths for input and output directories
-        fdets_folder_path = f'../small_dataset/{mission_name}/{experiment_name}/input/complete' #or insert your path
-        output_dir =  f'../small_dataset/{mission_name}/{experiment_name}/output/' #or insert your path
+        #fdets_folder_path = f'../small_dataset/{mission_name}/{experiment_name}/input/complete' #or insert your path
+        #output_dir =  f'../small_dataset/{mission_name}/{experiment_name}/output/' #or insert your path
+
+        fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/{experiment_name}/input/complete' #or insert your path
+        output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/{experiment_name}/output/' #or insert your path
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
             continue
@@ -211,7 +216,7 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                 labels_snr.add('Venus Express 2014/10')
 
                 # Plot Doppler Noise on the second subplot
-                ax2.errorbar(station, rms_doppler, linewidth=2, fmt='o', markersize=6, alpha=0.5,
+                ax2.errorbar(station, mean_doppler, linewidth=2, fmt='o', markersize=6, alpha=0.5,
                              color=color_dict[experiment_name])
 
                 # Plot SNR vs. Doppler Noise on the third subplot
@@ -232,7 +237,7 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                 labels_snr.add(experiment_name)
 
                 # Plot Doppler Noise on the second subplot
-                ax2.errorbar(station, rms_doppler, linewidth=2, fmt='o', markersize=6, alpha=0.5,
+                ax2.errorbar(station, mean_doppler, linewidth=2, fmt='o', markersize=6, alpha=0.5,
                              color=color_dict[experiment_name])
 
                 # Plot SNR vs. Doppler Noise on the third subplot
@@ -247,11 +252,11 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                 ax4.annotate(station, (mean_elevation, mean_snr), fontsize=10, alpha=0.7)
 
             # only keep good observations (where good: rms_doppler < 0.5 Hz)
-            if np.abs(mean_doppler) > 10: #in mHz (< 0.1 Hz)
+            if bad_obs_flag and np.abs(mean_doppler) > 10: #in mHz (< 0.1 Hz)
                 ax1.errorbar(station, mean_snr, linewidth=2, fmt='x', markersize=6, alpha=0.7,
                              color='red')
                 # Plot Doppler Noise on the second subplot
-                ax2.errorbar(station, rms_doppler, linewidth=2, fmt='x', markersize=6, alpha=0.7,
+                ax2.errorbar(station, mean_doppler, linewidth=2, fmt='x', markersize=6, alpha=0.7,
                              color='red')
                 # Plot SNR vs. Doppler Noise on the third subplot
                 ax3.errorbar(mean_snr, rms_doppler, fmt='x',markersize=3*antenna_diameter/10, alpha=0.7,
@@ -272,7 +277,7 @@ ax1.grid()
 ax1.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
 # Formatting Doppler Noise subplot
-ax2.set_ylabel(f'RMS Doppler Noise [mHz]')
+ax2.set_ylabel(f'Mean Doppler Noise [mHz]')
 ax2.set_xlabel(f'Station Code')
 ax2.grid()
 
