@@ -42,9 +42,10 @@ analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
 experiments_to_analyze = {
-    'min': ["ec094b"]
+    'vex': ["ec094b"],
+
 }
-bad_obs_flag = True
+bad_obs_flag = False
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
 mean_elevations = defaultdict(list)
@@ -59,7 +60,7 @@ for mission_name, experiment_names in experiments_to_analyze.items():
         else:
             color_dict[experiment_name] = generate_random_color()
 
-    root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data'
+    root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/'
     mission_root = os.path.join(root_dir, mission_name)
     print(mission_root)
     #mission_root =root_dir
@@ -73,6 +74,7 @@ for mission_name, experiment_names in experiments_to_analyze.items():
         yymm_path = os.path.join(mission_root, yymm_folder)
 
         if not os.path.isdir(yymm_path) or not yymm_folder.startswith(mission_name + '_'):
+            print(yymm_folder)
             continue
 
         for yymmdd_folder in sorted(os.listdir(yymm_path)):
@@ -83,10 +85,12 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             #if not os.path.isdir(full_folder_path) or not yymmdd_folder.startswith(mission_name + '_'):
             #    continue
             if not os.path.isdir(full_folder_path) or not yymmdd_folder.startswith(mission_name):
+                print(yymmdd_folder)
                 continue
             # Define subfolder paths
             fdets_folder_path = os.path.join(full_folder_path, 'input', 'complete')
             output_dir = os.path.join(full_folder_path, 'output')
+            print(output_dir)
             if not os.path.exists(output_dir):
                 print(f'The folder {output_dir} does not exist. Skipping...')
                 continue
@@ -131,39 +135,12 @@ for mission_name, experiment_names in experiments_to_analyze.items():
                     # Apply mission-specific SNR and Doppler noise filtering
                     if mission_name in ['juice', 'mex', 'vex']:
                         filter_snr = snr_array > 100
-                        if experiment_name == 'ec094a' and station_code in ['Wz']:
-                            filter_doppler_noise = np.abs(doppler_noise_array) < 0.1
-                            filtered_snr = snr_array[filter_snr & filter_doppler_noise]
-                            filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
-
-                        elif experiment_name == 'ec094b' and station_code in ['Mh', 'Nt']:
-                            filter_doppler_noise = np.abs(doppler_noise_array) < 0.1
-                            filtered_snr = snr_array[filter_snr & filter_doppler_noise]
-                            filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
-
-                        else:
-                            filtered_snr = snr_array[filter_snr]
-                            filtered_doppler_noise = doppler_noise_array[filter_snr]
 
                     elif mission_name in ['mro', 'min']:
                         filter_snr = snr_array > 30
-                        if experiment_name == 'ed045a' and station_code in ['Bd', 'T6', 'Hh']:
-                            filter_doppler_noise = np.abs(doppler_noise_array) < 0.1
-                            filtered_snr = snr_array[filter_snr & filter_doppler_noise]
-                            filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
 
-                        elif experiment_name == 'ed045e' and station_code in ['Wb']:
-                            filter_doppler_noise = np.abs(doppler_noise_array) < 0.1
-                            filtered_snr = snr_array[filter_snr & filter_doppler_noise]
-                            filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
-
-                        elif experiment_name == 'ed045f' and station_code in ['Wz']:
-                            filter_doppler_noise = np.abs(doppler_noise_array) < 0.1
-                            filtered_snr = snr_array[filter_snr & filter_doppler_noise]
-                            filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
-                        else:
-                            filtered_snr = snr_array[filter_snr]
-                            filtered_doppler_noise = doppler_noise_array[filter_snr]
+                    filtered_snr = snr_array[filter_snr]
+                    filtered_doppler_noise = doppler_noise_array[filter_snr]
 
                     # Save mean and RMS values
                     mean_rms_user_defined_parameters[experiment_name].append({station_code:
@@ -259,20 +236,13 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                 continue
 
             # === Prepare label and color ===
-            if experiment_name[0] == 'v':  # VEX
-                yymm = f'{mission_name}_{experiment_name[1:5]}'
-                year = "2014"
-                month = yymm[6:]
-                label_str = f'{mission_name.upper()} 20{year}/{month}'
-                color = color_dict[yymm]
-            else:
-                yymmdd = re.sub(r'^[^_]+_', '', experiment_name)
-                yymm = yymmdd[:4]
-                year = yymm[:2]
-                month = yymm[2:]
-                print(year, month)
-                label_str = f'{mission_name.upper()} 20{year}/{month}'
-                color = color_dict[yymm]
+
+            yymmdd = re.sub(r'^[^_]+_', '', experiment_name)
+            yymm = yymmdd[:4]
+            year = yymm[:2]
+            month = yymm[2:]
+            label_str = f'{mission_name.upper()} 20{year}/{month}'
+            color = color_dict[yymm]
 
             # Determine label for legend (once per plot)
             label = label_str if label_str not in labels_snr else None
@@ -314,7 +284,7 @@ ax4.set_xlabel('Elevation [deg]')
 ax4.set_ylabel('SNR [dB]')
 ax4.grid()
 
-plt.savefig(output_dir + experiment_name + '_dataset_statistics.png')
+plt.savefig(os.path.join(output_dir, experiment_name) + '_dataset_statistics.png')
 
 plt.tight_layout(pad=2)
 plt.show()
