@@ -3,11 +3,11 @@
 
 # %% [markdown]
 """
-# This script was used on the PRIDE_DATA folder to produce Vidhya's paper plots.
-# This script has the division by EXPERIMENT NAMES. If you want the division by times, check dataset_statistics_by_time.
-This script analyzes radio science experiments for JUICE
-computing and plotting Key Performance Indicators (KPIs) such as mean Signal-to-Noise Ratio (SNR),
-rms SNR, mean Doppler noise, and mean elevation angle across multiple ground stations.
+# This script can be used on the PRIDE_DATA folder to reproduce Vidhya's paper plots.
+# This script has the division by EXPERIMENT NAMES. If you want the division by times, check the script: dataset_statistics_by_time.
+This script analyzes radio science experiments for: JUICE, MEX, MRO, MARS INSIGHT.
+It computes and plots Key Performance Indicators (KPIs) such as mean Signal-to-Noise Ratio (SNR),
+rms SNR, mean Doppler noise, and mean elevation angle across multiple PRIDE ground stations.
 
 The workflow includes:
 - Loading user-defined parameters (SNR, Doppler noise) and elevation data
@@ -41,7 +41,10 @@ analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
 experiments_to_analyze = {
-    'juice': ["ec094b"]
+    'juice': ["ec094a", "ec094b"],
+    'mex': ['gr035'],
+    'min': ['ed045a','ed045c','ed045d','ed045e','ed045f'],
+    'mro': ['ec064']
 }
 bad_obs_flag = False
 # Create empty dictionaries to be filled with meaningful values

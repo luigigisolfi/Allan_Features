@@ -39,15 +39,14 @@ analysis = pride.Analysis(process_fdets, utilities)
 # %%
 # Define experiments to analyze
 # Select the experiment(s) for which data analysis will be performed
-experiments_to_analyze = {
-    'juice': ["ec094b"]
-}
-# %%
+experiments_to_analyze = {'juice': ['juice_231019']}
+
 # Loop over missions and experiments
-for mission_name, experiment_names in experiments_to_analyze.items():
-    for experiment_name in experiment_names:
-        fdets_folder_path = f'../small_dataset/{mission_name}/{experiment_name}/input/complete' #or insert your path
-        output_dir =  f'../small_dataset/{mission_name}/{experiment_name}/output/' #or insert your path
+for mission_name, dates in experiments_to_analyze.items():
+    for date in dates:
+        corresponding_month_folder = date[:-2]
+        fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{corresponding_month_folder}/{date}/input/complete' #or insert your path
+        output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{corresponding_month_folder}/{date}/output_test/' #or insert your path
         horizons_target = utilities.mission_name_to_horizons_target(mission_name)
         print(f'Performing Statistical Analysis for mission: {mission_name} (Horizons Code: {horizons_target})...')
 
@@ -87,7 +86,7 @@ for mission_name, experiment_names in experiments_to_analyze.items():
                         [file_name],
                         horizons_target,
                         [station_id],
-                        experiment_name =experiment_name ,
+                        mission_name =mission_name ,
                         suppress = True,
                         save_dir = os.path.join(output_dir, 'elevation')
                     )
@@ -97,7 +96,7 @@ for mission_name, experiment_names in experiments_to_analyze.items():
         # Plot SNR and Doppler Noise statistics
         analysis.get_all_stations_statistics(
             fdets_folder_path = fdets_folder_path,
-            experiment_name = experiment_name,
+            mission_name = mission_name,
             extracted_parameters_list= extracted_data_list,
             doppler_noise_statistics = True,
             snr_statistics= True,
@@ -110,7 +109,7 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             files_list,
             horizons_target,
             station_ids,
-            experiment_name,
+            mission_name,
             suppress = True,
             save_dir = os.path.join(output_dir, 'statistics')
         )

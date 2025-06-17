@@ -16,7 +16,6 @@ The workflow includes:
 Requirements:
     - The data files where the KPIs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
 """
-from tudatpy.kernel.data import doppler_noise
 
 # %%
 from pride_characterization_library import PrideDopplerCharacterization
@@ -42,10 +41,10 @@ analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
 experiments_to_analyze = {
-    'vex': ["ec094b"],
+    'mro': ["ec094b"],
 
 }
-bad_obs_flag = False
+bad_obs_flag = True
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
 mean_elevations = defaultdict(list)
@@ -62,8 +61,6 @@ for mission_name, experiment_names in experiments_to_analyze.items():
 
     root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/'
     mission_root = os.path.join(root_dir, mission_name)
-    print(mission_root)
-    #mission_root =root_dir
     color_dict = {}
 
     if not os.path.exists(mission_root):
@@ -82,8 +79,7 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             full_folder_path = os.path.join(yymm_path, yymmdd_folder)
             print(full_folder_path)
 
-            #if not os.path.isdir(full_folder_path) or not yymmdd_folder.startswith(mission_name + '_'):
-            #    continue
+
             if not os.path.isdir(full_folder_path) or not yymmdd_folder.startswith(mission_name):
                 print(yymmdd_folder)
                 continue
