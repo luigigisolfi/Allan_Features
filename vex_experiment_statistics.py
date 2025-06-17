@@ -31,14 +31,12 @@ sys.path.append('/Users/lgisolfi/ClionProjects/Allan_Features/Analysis_Scripts/'
 from pride_characterization_library  import PrideDopplerCharacterization
 import os
 
-# %%
 # Initialize classes
 pride = PrideDopplerCharacterization()
 process_fdets = pride.ProcessFdets()
 utilities = pride.Utilities()
 analysis = pride.Analysis(process_fdets, utilities)
 
-# %%
 # Define experiments to analyze
 old_format_files_folder = f"/Users/lgisolfi/Desktop/data_archiving-2.0/vex/usable/converted_old_format_files/"
 vex_year_month_list  = [name for name in os.listdir(old_format_files_folder) if os.path.isdir(os.path.join(old_format_files_folder, name))]
@@ -54,7 +52,6 @@ for vex_year_month in vex_year_month_list:
         'vex': experiments_list
     }
 
-    # %%
     # Loop over missions and experiments
     try:
         for mission_name, experiment_names in experiments_to_analyze.items():

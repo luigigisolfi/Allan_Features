@@ -15,12 +15,6 @@ This specific demo is configured to analyze:
 - Mission: 'juice'
 - Experiment: 'ec094b'
 
-Input folder structure assumed:
-    /{dataset}/{mission_name}/{experiment_name}/input/complete/
-
-Output folder structure:
-    /{dataset}/{mission_name}/{experiment_name}/output/
-
 Note:
 This code has to be run before being able to run dataset_statistics.py .
 """
