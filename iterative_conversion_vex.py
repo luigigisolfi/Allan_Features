@@ -2,7 +2,7 @@ import os
 import subprocess
 
 """
-This code was used to iteratively convert all old_format vex data to the new fdets format. 
+This code was used to iteratively convert all original PRIDE vex data to the new fdets format. 
 """
 def run_old2new_conversion(base_folder: str, skip_folders=None) -> None:
     """
@@ -57,6 +57,6 @@ def run_old2new_conversion(base_folder: str, skip_folders=None) -> None:
             subprocess.run(command, shell=True)
 
 # Example usage
-old_format_files_folder = "/Users/lgisolfi/Desktop/data_archiving-2.0/vex/usable/converted_old_format_files/"
-skip_list = ["vex_1401", "vex_1402"]
-run_old2new_conversion(old_format_files_folder, skip_list)
+#old_format_files_folder = "/Users/lgisolfi/Desktop/data_archiving-2.0/vex/usable/converted_old_format_files/"
+#skip_list = ["vex_1401", "vex_1402"]
+#run_old2new_conversion(old_format_files_folder, skip_list)

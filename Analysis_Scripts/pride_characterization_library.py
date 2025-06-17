@@ -209,7 +209,7 @@ class PrideDopplerCharacterization:
                 # Split the header line by '|'
                 columns_header_parts = columns_header.split('|')
 
-                if columns_header_parts[0] == None:
+                if columns_header_parts[0] is None:
                     self.n_columns = 0
 
                 if columns_header_parts[-1] == '':
@@ -439,11 +439,6 @@ class PrideDopplerCharacterization:
             Define dictionary for 
             1) a bunch of radio-tracking experiments experiments 
             2) all missions present in the Mas Said table file.
-            ########################################################################################################################
-             NOTE: please note there is many more vex files for MEX tracking tests in the VEX FILES folder provided by G. Cimo'.
-             NOTE: please note there is various vex files associated with the gr035 experiment in the VEX FILES folder provided by G. Cimo'.
-             NOTE: please note some stations in the fdets are not specified in the $FREQ block of the vex files, 
-                   but they are found in the $IF block. The current implementation does not consider stations in the $IF block.
             ########################################################################################################################
             """
 
