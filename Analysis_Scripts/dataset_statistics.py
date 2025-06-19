@@ -11,8 +11,8 @@ rms SNR, mean Doppler noise, and mean elevation angle across multiple PRIDE grou
 
 The workflow includes:
 - Loading user-defined parameters (SNR, Doppler noise) and elevation data
-- Filtering based on SNR and Doppler noise thresholds
-- Computing weighted and unweighted averages
+- Filtering based on SNR and allowed Doppler noise thresholds
+- Computing weighted and unweighted averages to populate table 5 of Vidhya's paper
 - Visualizing results in a set of subplots
 
 Requirements:
@@ -44,9 +44,14 @@ experiments_to_analyze = {
     'juice': ["ec094a", "ec094b"],
     'mex': ['gr035'],
     'min': ['ed045a','ed045c','ed045d','ed045e','ed045f'],
-    'mro': ['ec064']
+    'mro': ['ec064'],
+    'vex': ['v140106','v140109','v140110','v140113','v140118','v140119','v140120','v140123','v140126','v140127', 'v140131']
 }
-bad_obs_flag = False
+
+allowed_mean_doppler_filter = 0.1 #Hz = 100 mHz
+bad_observations_mean_doppler_filter = 0.05 #Hz = 50 mHz
+
+bad_obs_flag = True
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
 mean_elevations = defaultdict(list)
@@ -58,6 +63,21 @@ for mission_name, experiment_names in experiments_to_analyze.items():
         # Assign color (fixed red for 'vex', random otherwise)
         if mission_name == 'vex':
             color_dict[experiment_name] = 'red'
+        elif mission_name == 'mro':
+            color_dict[experiment_name] = 'black'
+
+        elif mission_name == 'mex':
+            color_dict[experiment_name] = 'magenta'
+
+        elif experiment_name == 'ed045a':
+            color_dict[experiment_name] = 'blue'
+
+        elif experiment_name == 'ed045c':
+            color_dict[experiment_name] = 'c'
+
+        elif experiment_name == 'ed045e':
+            color_dict[experiment_name] = 'orangered'
+
         else:
             color_dict[experiment_name] = generate_random_color()
 
@@ -94,43 +114,17 @@ for mission_name, experiment_names in experiments_to_analyze.items():
 
                 snr_array = np.array(parameters_dictionary['SNR'])
                 doppler_noise_array = np.array(parameters_dictionary['Doppler_noise'])
-
+                filter_doppler_noise = np.abs(doppler_noise_array) < allowed_mean_doppler_filter
                 # Apply mission-specific SNR and Doppler noise filtering
                 if mission_name in ['juice', 'mex', 'vex']:
-                    filter_snr = snr_array > 100
-                    if experiment_name == 'ec094a' and station_code in ['Wz']:
-                        filter_doppler_noise = np.abs(doppler_noise_array) < 0.1
-                        filtered_snr = snr_array[filter_snr & filter_doppler_noise]
-                        filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
-
-                    elif experiment_name == 'ec094b' and station_code in ['Mh', 'Nt']:
-                        filter_doppler_noise = np.abs(doppler_noise_array) < 0.1
-                        filtered_snr = snr_array[filter_snr & filter_doppler_noise]
-                        filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
-
-                    else:
-                        filtered_snr = snr_array[filter_snr]
-                        filtered_doppler_noise = doppler_noise_array[filter_snr]
+                    filter_snr = snr_array > 100 # manual filtering in the original units (as in the fdets)
+                    filtered_snr = snr_array[filter_snr]
 
                 elif mission_name in ['mro', 'min']:
-                    filter_snr = snr_array > 30
-                    if experiment_name == 'ed045a' and station_code in ['Bd', 'T6', 'Hh']:
-                        filter_doppler_noise = np.abs(doppler_noise_array) < 0.1
-                        filtered_snr = snr_array[filter_snr & filter_doppler_noise]
-                        filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
+                    filter_snr = snr_array > 30 # manual filtering in the original units (as in the fdets)
 
-                    elif experiment_name == 'ed045e' and station_code in ['Wb']:
-                        filter_doppler_noise = np.abs(doppler_noise_array) < 0.1
-                        filtered_snr = snr_array[filter_snr & filter_doppler_noise]
-                        filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
-
-                    elif experiment_name == 'ed045f' and station_code in ['Wz']:
-                        filter_doppler_noise = np.abs(doppler_noise_array) < 0.1
-                        filtered_snr = snr_array[filter_snr & filter_doppler_noise]
-                        filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
-                    else:
-                        filtered_snr = snr_array[filter_snr]
-                        filtered_doppler_noise = doppler_noise_array[filter_snr]
+                filtered_snr = snr_array[filter_snr & filter_doppler_noise]
+                filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
 
                 # Save mean and RMS values
                 mean_rms_user_defined_parameters[experiment_name].append({station_code:
@@ -163,11 +157,24 @@ labels_snr_vs_noise = set()
 fig, axes = plt.subplots(4, 1, figsize=(10, 15), sharex=False)
 ax1, ax2, ax3, ax4 = axes  # Assign subplots
 
-# Compute weighted and unweighted averages
+### This part of the code computes the average values of KPIs among all stations belonging to a given experiment,
+### and it does so by weighting the noise by its SNR.
+
+mission_aggregates = defaultdict(lambda: {
+    'mean_snr': [],
+    'mean_doppler_noise': [],
+    'rms_doppler_noise': []
+})
+
 for experiment_name in mean_rms_user_defined_parameters.keys():
-    # compute the mean of KPIs among all stations belonging to the experiment (table 5 in Vidhya's paper)
+    print(experiment_name)
+    mission_name = utilities.get_mission_from_experiment(
+        experiment_name)[0] if isinstance(utilities.get_mission_from_experiment(experiment_name), list) else utilities.get_mission_from_experiment(experiment_name)
+
+    print(mission_name)
+
+    # First step: Unweighted means
     aggregate = defaultdict(lambda: {'sum': 0, 'count': 0})
-    # First pass: Compute the unweighted means for elevation, snr and rms snr
     for entry in mean_rms_user_defined_parameters[experiment_name]:
         for station, values in entry.items():
             for key, value in values.items():
@@ -175,25 +182,45 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                     aggregate[key]['sum'] += value
                     aggregate[key]['count'] += 1
 
-    # Compute the mean values before applying weights
     mean_values_old = {key: aggregate[key]['sum'] / aggregate[key]['count'] for key in aggregate}
 
-    # Second pass: Apply weights using SNR
+    # Second step: Weighted means using SNR
     aggregate_weighted = defaultdict(lambda: {'sum': 0, 'count': 0})
     for entry in mean_rms_user_defined_parameters[experiment_name]:
         for station, values in entry.items():
-            if np.abs(values['mean_doppler_noise']) < 10: # We set a threshold for the highest acceptable value (in mHz) of Doppler noise (< 0.1 Hz)
-                for key, value in values.items():
-                    snr_weight = values.get('mean_snr')
-                    if key in ['mean_doppler_noise', 'rms_doppler_noise']:
-                        aggregate_weighted[key]['sum'] += value * snr_weight
-                        aggregate_weighted[key]['count'] += snr_weight
-            else:
-                continue
+            snr_weight = values.get('mean_snr', 0)
+            for key, value in values.items():
+                if key in ['mean_doppler_noise', 'rms_doppler_noise']:
+                    aggregate_weighted[key]['sum'] += value * snr_weight
+                    aggregate_weighted[key]['count'] += snr_weight
 
-    # Compute the weighted mean values
-    mean_values_new = {key: (aggregate_weighted[key]['sum'] / aggregate_weighted[key]['count'])*1000 for key in aggregate_weighted}
-    merged_dict = {**mean_values_old, **mean_values_new}
+    mean_values_new = {
+        key: (aggregate_weighted[key]['sum'] / aggregate_weighted[key]['count']) * 1000
+        for key in aggregate_weighted
+    }
+
+    mission_aggregates[mission_name]['mean_snr'].append(mean_values_old['mean_snr'])
+    for key in ['mean_doppler_noise', 'rms_doppler_noise']:
+        if key in mean_values_new:
+            mission_aggregates[mission_name][key].append(mean_values_new[key])
+
+final_means_per_mission = {
+    mission: {
+        key: np.mean(values) if values else None
+        for key, values in kpis.items()
+    }
+    for mission, kpis in mission_aggregates.items()
+}
+
+# Optional: Print results
+for mission, kpis in final_means_per_mission.items():
+    print(f"\nMission: {mission}")
+    print(f"Mean SNR (dB): {10 * np.log10(kpis['mean_snr']) if kpis['mean_snr'] else 'N/A'}")
+    print(f"Mean Doppler Noise (mHz): {kpis['mean_doppler_noise']}")
+    print(f"RMS Doppler Noise (mHz): {kpis['rms_doppler_noise']}")
+
+##########
+##########
 
 # Plotting results
 for experiment_name in mean_rms_user_defined_parameters.keys():
@@ -205,15 +232,15 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                 continue
             mean_snr = 10*np.log10(station_dict[station]['mean_snr']) #in dB units
             rms_snr = 10*np.log10(station_dict[station]['rms_snr']) #in dB units
-            mean_doppler = station_dict[station]['mean_doppler_noise']*1000 #in mHz
-            rms_doppler = station_dict[station]['rms_doppler_noise']*1000 #in mHz
+            mean_doppler = station_dict[station]['mean_doppler_noise']*1000 #convert to mHz
+            rms_doppler = station_dict[station]['rms_doppler_noise']*1000 #convert to mHz
             mean_elevation = station_dict[station]['mean_elevation']
 
             # Plot SNR on the first subplot
             if experiment_name[0] == 'v':
                 ax1.errorbar(station, mean_snr, linewidth=2, fmt='o', markersize=6, alpha=0.5,
-                             color=color_dict[experiment_name], label='Venus Express 2014/10' if 'Venus Express 2014/10' not in labels_snr else None)
-                labels_snr.add('Venus Express 2014/10')
+                             color=color_dict[experiment_name], label='Venus Express 2014/01' if 'Venus Express 2014/01' not in labels_snr else None)
+                labels_snr.add('Venus Express 2014/01')
 
                 # Plot Doppler Noise on the second subplot
                 ax2.errorbar(station, mean_doppler, linewidth=2, fmt='o', markersize=6, alpha=0.5,
@@ -224,6 +251,7 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                              color=color_dict[experiment_name])
                 ax3.annotate(station, (mean_snr, rms_doppler), fontsize=10, alpha=0.7)
 
+
                 labels_snr_vs_noise.add('Venus Express 2014/01')
 
                 ax4.errorbar(mean_elevation, mean_snr, fmt='o', markersize=3*antenna_diameter/10, alpha=0.6,
@@ -231,7 +259,6 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                 ax4.annotate(station, (mean_elevation, mean_snr), fontsize=10, alpha=0.7)
 
             else:
-
                 ax1.errorbar(station, mean_snr, linewidth=2, fmt='o', markersize=6, alpha=0.5,
                              color=color_dict[experiment_name], label=experiment_name if experiment_name not in labels_snr else None)
                 labels_snr.add(experiment_name)
@@ -251,23 +278,16 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                              color=color_dict[experiment_name])
                 ax4.annotate(station, (mean_elevation, mean_snr), fontsize=10, alpha=0.7)
 
-            # only keep good observations (where good: rms_doppler < 0.5 Hz)
-            if bad_obs_flag and np.abs(mean_doppler) > 10: #in mHz (< 0.1 Hz)
-                ax1.errorbar(station, mean_snr, linewidth=2, fmt='x', markersize=6, alpha=0.7,
-                             color='red')
-                # Plot Doppler Noise on the second subplot
-                ax2.errorbar(station, mean_doppler, linewidth=2, fmt='x', markersize=6, alpha=0.7,
-                             color='red')
-                # Plot SNR vs. Doppler Noise on the third subplot
-                ax3.errorbar(mean_snr, rms_doppler, fmt='x',markersize=3*antenna_diameter/10, alpha=0.7,
-                             color='red')
-                ax3.annotate(station, (mean_snr, rms_doppler), fontsize=10, alpha=0.7)
-
-                labels_snr_vs_noise.add(experiment_name)
-
-                ax4.errorbar(mean_elevation, mean_snr, fmt='x', markersize=3*antenna_diameter/10, alpha=0.7,
-                             color='red')
-                ax4.annotate(station, (mean_elevation, mean_snr), fontsize=10, alpha=0.7)
+            # only keep good observations
+            if np.abs(mean_doppler) > bad_observations_mean_doppler_filter*1000: # in mHz:
+                if bad_obs_flag:
+                    ax1.errorbar(station, mean_snr, fmt='x', markersize=6, alpha=0.7, color='red')
+                    ax2.errorbar(station, mean_doppler, fmt='x', markersize=7, alpha=0.7, color='red')
+                    ax3.errorbar(mean_snr, rms_doppler, fmt='x', markersize=3 * antenna_diameter / 10, alpha=0.7, color='red')
+                    ax3.annotate(station, (mean_snr, rms_doppler), fontsize=7, alpha=0.7)
+                    ax4.errorbar(mean_elevation, mean_snr, fmt='x', markersize=3 * antenna_diameter / 10, alpha=0.7, color='red')
+                    ax4.annotate(station, (mean_elevation, mean_snr), fontsize=6, alpha=0.7)
+                continue
 
 
 # Final plot adjustments

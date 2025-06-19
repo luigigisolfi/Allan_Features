@@ -1,142 +1,166 @@
 # Content
-This repository contains:
-- Conversion Scripts (like old2newfdets and correct_baseband_fdets) allowing for conversion between old format PRIDE data to the new (JUICE-like) format. The new format is: UTC TIME, SNR, SPECTRAL MAX, FREQUENCY DETECTION, DOPPLER NOISE
-- Analysis Scripts (found in the Analysis_Script folder). These allow to perform a thorough analysis of the PRIDE dataset, and to facilitate tasks. These scripts heavily rely on the following library: pride_characterization_library.py . 
-- Folders containing sample data in order to test the above-mentioned scripts.
-- roaming scripts in the upper level folder, constiting of scripts that were used to convert the original PRIDE data into the converted old format files (new format). These scripts are only to be used in the case one wishes to reproduce the conversion from original PRIDE data to converted old format files (new format).*
 
-Each script is commented so as to facilitate reproducibility. 
+This repository contains:
+
+- **Conversion Scripts** (e.g., `old2newfdets.py` and `correct_baseband_fdets.py`)  
+  These scripts convert original PRIDE data into the new standardized (JUICE-like) format:  
+  `UTC TIME, SNR, SPECTRAL MAX, FREQUENCY DETECTION, DOPPLER NOISE`.
+
+- **Analysis Scripts** (found in the `Analysis_Scripts/` folder)  
+  These scripts enable detailed analysis of PRIDE datasets and facilitate various tasks. They rely heavily on the library `pride_characterization_library.py`.
+
+- **Sample Data Folders**  
+  Provided for testing the aforementioned scripts.
+
+- **Vex and baseband frequencies folders**
+  These folders contain vex files (.vix) for the following experiments:
+  juice: ec094a,ec094b,
+  mro: ec064,
+  mex: gr035, m0325,m0327, m0403
+  min: ed045a, ed045c, ed045d, ed045e, ed045f
+  vex: v0314
+
+  and the corresponding base frequencies (per station). 
+  
+  NOTE
+  The `baseband_frequencies folder` is populated upon calling the `correct_baseband_frequencies.py` function.
+  The files populating it are used to correct the original PRIDE data fdets for which a given baseband frequency was missing in the header, 
+  and are never used within the Analysis Scripts (the user will virtually never interact with them, 
+  unless they want to convert original PRIDE data into the new format).
+  For more information, refer to `correct_baseband_frequencies.py` or to `old2new_fdets.py`
+
+- **Roaming Scripts** (found in the root directory)  
+  These were used to convert the original PRIDE data into the "converted old format" (i.e., the new standardized format).
+  **Note:** These scripts are **not deprecated**, but users should exercise caution when using them. In many cases, **manual steps or corrections** may be necessary 
+  during the conversion process (e.g., Wetzell time tag errors for Venus Express were corrected after analysis using `correct_timetags.py`). 
+  They are primarily intended for **reproducibility** and **careful data handling**.
+
+Each script is commented to facilitate reproducibility.  
 For any questions, please contact Luigi Gisolfi: l.gisolfi@tudelft.nl
 
+---
+
 ## Useful (Provisional) Definitions
-1) **riginal PRIDE data**
-We refer to the PRIDE data retrieved from either JIVE's Marcopolo server, or files retrieved from University of Tasmania, or files from another source within the PRIDE team domain, as "original PRIDE data".
-2) **new fdets format**
-The new fdets format is (header): UTC TIME, SNR, SPECTRAL MAX, FREQUENCY DETECTION, DOPPLER NOISE
-3) converted old format files
-We refer to the converted old format files as the converted (into the new fdets format) original PRIDE data. The conversion operation was needed, since each mission had somehow different formats, and this would make parsing and processing non-sustainable. Conversion from original PRIDE data to converted old format files is achieved through both old2new_fdets.py and correct_baseband_fdets.py
-4) **mission name**
-This is actually the mission code. It sometimes correspond to the actual mission name, like for juice. Most times, though, it does not. For instance, min = mars insight and mex = mars express.
-5) **single scan**
-Single scans represent single passes recorded by a given PRIDE station.
-6) **complete scan**
-It is an union of single scans over a given coherent session. For instance, the union of all single scans recorded by Onsala during the GR035 experiment constitute a complete scan for Onsala.
 
-*This is anyway not recommended, since the original PRIDE data contained various issues that were solved in itinere (for instance, some Wetzell Time Tags for Venus Express suffered from a time-bias of around 1000 days. This could only be spotted through post-processing visualization and we used the correct_timetags.py script to correct those badly formatted dates). 
+1. **Original PRIDE data**  
+   Refers to raw PRIDE data obtained from sources such as JIVE's Marcopolo server, the University of Tasmania, or any source internal to the PRIDE team.
 
-## List of Scripts and brief explanation
+2. **New fdets format**  
+   A standardized header format used throughout this repo:  
+   `UTC TIME, SNR, SPECTRAL MAX, FREQUENCY DETECTION, DOPPLER NOISE`
 
-We hereby provide a brief description of each script present in the repo, although more accurate docstrings and comments are present in each .py script.  
+3. **Converted old format files**  
+   Original PRIDE data converted into the new fdets format. This conversion was required due to inconsistencies in file formats across missions.  
+   The conversion process uses `old2new_fdets.py` and `correct_baseband_fdets.py`.
 
-The following scripts are ready to be used for PRIDE Data Analysis. 
+4. **Mission name**  
+   Refers to a mission code, which may or may not correspond to the actual mission name.  
+   Example:
+    - `juice` → JUICE
+    - `min` → Mars InSight
+    - `mex` → Mars Express
 
-- **./Analysis_Scripts/experiment_statistics.py**
-Script to perform statistical analysis on PRIDE Doppler FDETS files.
+5. **Single scan**  
+   A pass recorded by a specific PRIDE ground station.
 
-This script:
-- Loads standard SPICE kernels.
-- Initializes PRIDE characterization tools.
-- Extracts Doppler noise, SNR, and elevation data from FDETS input files.
-- Generates user-defined parameter plots (SNR, Doppler noise, raw FDETS).
-- Generates elevation plots for each station and the whole experiment.
-- Computes statistical summaries (mean, std) of SNR and Doppler noise.
-- Combines SNR and elevation plots into single images for each station/date.
+6. **Complete scan**  
+   The union of single scans from a coherent observation session.  
+   Example: All Onsala station scans during the GR035 experiment make up a complete scan for Onsala.
 
-This specific demo is configured to analyze:
-- Mission: 'juice'
-- Experiment: 'ec094b'
+---
+## List of Scripts and Brief Explanation
 
-**Note**:
-This code has to be run before being able to run dataset_statistics.py .
+Each script in this repository is well-documented via comments and docstrings.  
+Below is a high-level summary of the available scripts.
 
-- **./Analysis_Scripts/dataset_statistics.py**
-This script can be used on the PRIDE_DATA folder to reproduce Vidhya's paper plots.
-This script has the division by EXPERIMENT NAMES. If you want the division by times, check the script: dataset_statistics_by_time.
-This script analyzes radio science experiments for: JUICE, MEX, MRO, MARS INSIGHT.
-It computes and plots Key Performance Indicators (KPIs) such as mean Signal-to-Noise Ratio (SNR),
-rms SNR, mean Doppler noise, and mean elevation angle across multiple PRIDE ground stations.
+### Analysis Scripts
 
-The workflow includes:
-- Loading user-defined parameters (SNR, Doppler noise) and elevation data
-- Filtering based on SNR and Doppler noise thresholds
-- Computing weighted and unweighted averages
-- Visualizing results in a set of subplots
+- **`./Analysis_Scripts/experiment_statistics.py`**  
+  Performs statistical analysis on PRIDE Doppler FDETS files.  
+  Features:
+    - Loads standard SPICE kernels.
+    - Initializes PRIDE characterization tools.
+    - Extracts Doppler noise, SNR, and elevation.
+    - Generates plots for user-defined parameters and station elevations.
+    - Computes statistical summaries (mean, std) for each metric.
+    - Combines plots per station and date.
 
-**Requirements**:
-    - The data files where the KPIs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py 
+  **Demo configuration:**
+    - Mission: `juice`
+    - Experiment: `ec094b`
 
-- **./Analysis_Scripts/pride_characterization_library**
-This is the main library, used throughout the analysis scripts mentioned below.
-It contains the following classes:
+  **Note:** This script must be run **before** using `dataset_statistics.py`.
 
-1) Pride_Doppler_Characterization.Process_Fdets
-2) Pride_Doppler_Characterization.Utilities
-3) Pride_Doppler_Characterization.Analysis
-4) Pride_Doppler_Characterization.ProcessVexFiles
-5) Pride_Doppler_Characterization.FormatFdets
+- **`./Analysis_Scripts/dataset_statistics.py`**  
+  Reproduces KPI plots as presented in Vidhya’s publication.  
+  This script groups data **by experiment name**.  
+  For grouping by **time**, use `dataset_statistics_by_time.py`.
 
-- **./Analysis_Scripts/dataset_statistics_by_time.py**
-This script analyzes radio science experiments computing and plotting Key Performance Indicators (KPIs) such as mean Signal-to-Noise Ratio (SNR),
-rms SNR, mean Doppler noise, and mean elevation angle across multiple ground stations.
+  Supported missions: JUICE, MEX, MRO, MARS INSIGHT  
+  Computes and plots:
+    - Mean and RMS of SNR
+    - Mean Doppler noise
+    - Mean elevation angle  
+      **Requirements:** KPI input files (generated by `experiment_statistics.py`) must be present in the `output_dir`.
 
-The workflow includes:
-- Loading user-defined parameters (SNR, Doppler noise) and elevation data
-- Filtering based on SNR and Doppler noise thresholds
-- Computing weighted and unweighted averages
-- Visualizing results in a set of subplots
+- **`./Analysis_Scripts/pride_characterization_library.py`**  
+  Core analysis library used across all scripts.  
+  Contains:
+    - `Pride_Doppler_Characterization.Process_Fdets`
+    - `Pride_Doppler_Characterization.Utilities`
+    - `Pride_Doppler_Characterization.Analysis`
+    - `Pride_Doppler_Characterization.ProcessVexFiles`
+    - `Pride_Doppler_Characterization.FormatFdets`
 
-**Requirements**:
-    - The data files where the KPIs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
+- **`./Analysis_Scripts/dataset_statistics_by_time.py`**  
+  Similar to `dataset_statistics.py` but groups data **by time**.  
+  Computes and visualizes KPIs across multiple ground stations.  
+  **Requirements:** KPI files created via `experiment_statistics.py`.
 
-- **./Analysis_Scripts/experiments_allan_index.py**
-This script allows for plotting of the Modified Allan Deviation per mission_name, given a date_folder, for all stations.
+- **`./Analysis_Scripts/experiments_allan_index.py`**  
+  Plots Modified Allan Deviation per `mission_name` and `date_folder`, across all stations.
 
+- **`./Analysis_Scripts/split_scan_by_time.py`**  
+  Splits long scans for more focused analysis (e.g., GR035 from MEX).  
+  To use it with other missions, update the file paths accordingly.
 
-- **./Analysis_Scripts/split_scan_by_time**
-This script might be useful for splitting long scans for quicker and targeted analysis (for examples, mex gr035 are very long and dense).
-To use it with other missions, just change the paths accordingly.
+  **Note:**  
+  The inverse operation (combining multiple scans into one) is available in the `Utilities` class of `pride_characterization_library.py`.
 
+---
 
-**NOTE**
-A function performing the opposite operation (i.e. attaching multiple single scans, creating a complete scan) can also be found in
-the pride_characterization_library.py, under the utilities class.
+### Conversion & Legacy Scripts
 
+These scripts should only be used when working with **original PRIDE data** in old formats:
 
-The following scripts shouldnt be used, unless necessary (i.e. unless users only own old format, original PRIDE data):
+- **`./old2newfdets.py`**  
+  Converts raw spectral files to the new fdets format and optionally corrects baseband frequencies.  
+  Features:
+    - Accepts multiple files or wildcard patterns.
+    - Applies format conversion and/or frequency corrections.
 
-- **./old2newfdets.py**
-Script for processing spectra input files and optionally correcting baseband frequencies.
-This script takes one or more spectra input files (or wildcard patterns to match files) and processes them to 
-convert their formats or correct bad baseband frequencies based on the specified arguments.
+- **`./correct_baseband_fdets.py`**  
+  Similar to above, this script:
+    - Parses input files.
+    - Validates data column consistency.
+    - Backs up original files.
+    - Fixes missing/incorrect baseband frequencies in headers.
 
-- **./correct_baseband_fdets.py**
-This script processes spectral data files, checks for proper baseband frequencies in headers, and applies corrections when necessary. It supports handling single files or wildcard patterns
-for batch processing.
+- **`./iterative_conversion_vex.py`**  
+  Batch converts original VEX-format data to the new fdets format.
 
-**Main functionalities**:
-- Parses command-line arguments to accept input files and experiment name.
-- Copies original files to backup with a ".old" extension.
-- Reads and validates the number of columns in data files.
-- Corrects baseband frequencies in file headers if missing or incorrect.
-- Saves updated headers back to the original files.
+- **`./temp_vex_folder_structure.py`**  
+  Moves subdirectories (named like `vex_yymm`) from an old base path to a new one.
 
-- **./iterative_conversion_vex.py**
-This code was used to iteratively convert all original PRIDE vex data to the new fdets format.
+- **`./temp_vex_renaming_folder.py`**  
+  Used to rename and restructure old VEX data folders to match the final format in `PRIDE DATA NEW`.
 
-- **./temp_vex_folder_structure.py**
-Move all subdirectories (named with 'vex_yymm' format) from the old base directory to a new base directory.
+- **`./vex_experiment_statistics.py`**  
+  Tailored variant of `experiment_statistics.py` for legacy VEX-format data.
 
-- **./temp_vex_renaming_folder.py**
-This code was used on the old vex data folder structure (old structure can be found in PRIDE DATA folder). 
-The script temp_vex_folder_structure is also applied to reach the final version of the vex folder structure. 
-The new final structure for vex folders, which makes vex structure homogenous with all other missions, can be found in PRIDE DATA NEW.
-
-- **./vex_experiment_statistics.py**
-This script performs the same as what is performed in experiment_statistics, but it is tailored to the old structure of vex data.
-
-- **./correct_timetags**
-Experience with the original dataset showed that some stations might have suffered from a constant time offset in the time tag, while still keeping the correct header.
-This script
-1) checks for the observation time in the header
-2) checks that the day in the time tag is the same as the header
-3) corrects if needed.
+- **`./correct_timetags.py`**  
+  Corrects constant time offsets in the observation time tags.  
+  Process:
+    1. Reads observation time from headers.
+    2. Verifies consistency with time tags.
+    3. Applies correction if a mismatch is detected.

@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 import re
+from scipy.stats import norm
 
 # %%
 def generate_random_color():
@@ -40,10 +41,10 @@ utilities = pride.Utilities() # create Utilities Object
 analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
-missions_to_analyse = ['juice', 'mro', 'mex', 'min']
+missions_to_analyse = ['vex']
 
 allowed_mean_doppler_filter = 0.1 #Hz = 100 mHz
-bad_observations_mean_doppler_filter = 0.05 #Hz = 50 mHz
+bad_observations_mean_doppler_filter = 0.005 #Hz = 5 mHz
 bad_obs_flag = True
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
@@ -52,6 +53,7 @@ color_dict = defaultdict(list)
 
 # Loop through missions and experiments
 for mission_name in missions_to_analyse:
+    count = 0
     if mission_name == 'vex':
         color_dict[mission_name] = 'red'
     else:
@@ -121,10 +123,25 @@ for mission_name in missions_to_analyse:
 
                     snr_array = np.array(parameters_dictionary['SNR'])
                     doppler_noise_array = np.array(parameters_dictionary['Doppler_noise'])
+
                     median_doppler_noise = np.median(doppler_noise_array)
                     mean_doppler_noise = np.mean(doppler_noise_array)
 
-                    filter_doppler_noise = np.abs(doppler_noise_array) < allowed_mean_doppler_filter
+                    filter_doppler_noise = np.abs(doppler_noise_array) < np.abs(median_doppler_noise)
+
+                    # Fit Gaussian
+                    mu, std = norm.fit(doppler_noise_array)
+
+                    # Plot Gaussian
+                    fig, ax = plt.subplots(1, 1, figsize=(10, 5), sharex=True)
+                    ax.hist(doppler_noise_array, bins=30, density=True, alpha=0.6)
+                    xmin, xmax = ax.get_xlim()  # Get the range from the histogram plot
+                    x = np.linspace(xmin, xmax, 100)  # Create 100 evenly spaced points between
+                    p = norm.pdf(x, mu, std)
+                    ax.plot(x, p, 'k', linewidth=2, label=f'Gaussian fit: μ={mu:.3f}, σ={std:.3f}')
+                    ax.legend()
+                    plt.show()
+                    exit()
 
                     # Apply mission-specific SNR and Doppler noise filtering
                     if mission_name in ['juice', 'mex', 'vex']:
@@ -135,6 +152,7 @@ for mission_name in missions_to_analyse:
 
                     filtered_snr = snr_array[filter_snr & filter_doppler_noise]
                     filtered_doppler_noise = doppler_noise_array[filter_snr & filter_doppler_noise]
+                    print(filtered_doppler_noise)
 
                     # Save mean and RMS values
                     mean_rms_user_defined_parameters[experiment_name].append({station_code:
@@ -258,10 +276,7 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                 continue
 
             # === Prepare label and color ===
-
-            print(experiment_name)
             yymmdd = re.sub(r'^[^_]+_', '', experiment_name)
-            print(yymmdd)
             yymm = yymmdd[:4]
             year = yymm[:2]
             month = yymm[2:]

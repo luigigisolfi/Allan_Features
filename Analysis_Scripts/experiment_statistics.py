@@ -33,7 +33,7 @@ analysis = pride.Analysis(process_fdets, utilities)
 # %%
 # Define experiments to analyze
 # Select the experiment(s) for which data analysis will be performed
-experiments_to_analyze = {'juice': ['juice_231019']}
+experiments_to_analyze = {'mex': ['mex_131228', 'mex_131229']}
 
 # Loop over missions and experiments
 for mission_name, dates in experiments_to_analyze.items():

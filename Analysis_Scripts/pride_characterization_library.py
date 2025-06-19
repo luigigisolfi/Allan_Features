@@ -21,7 +21,7 @@ from collections import defaultdict
 import pandas as pd
 import re
 import csv
-
+from scipy.stats import norm
 
 ########################################################################################################################################
 ##################################################### Main Class Definition ############################################################
@@ -2951,7 +2951,7 @@ class PrideDopplerCharacterization:
 
                     # Compute mADEV
                     try:
-                        taus, mdev, errors, _ = allantools.mdev(
+                        taus, mdev, errors, _ = allantools.oadev(
                             np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
                             rate=rate_fdets,
                             data_type='freq',
@@ -3631,11 +3631,23 @@ class PrideDopplerCharacterization:
                         if np.any(date_data_mask):  # Only plot if there is data for this date
                             doppler_noise_filtered = doppler_noise_hz[date_data_mask]  # Apply mask
 
+
+
                             mean_doppler_noise = np.mean(doppler_noise_filtered)
                             rms_doppler_noise = np.sqrt(np.mean(doppler_noise_filtered**2))
                             ax = axs[unique_dates_list.index(date)]
                             ax.hist(doppler_noise_filtered, bins=30, alpha=0.6, color=colors[i], label = f'mean: {round(mean_doppler_noise, 3)}, rms = {round(rms_doppler_noise, 3)}')
 
+                            # Fit Gaussian
+                            mu, std = norm.fit(doppler_noise_filtered)
+
+                            # Plot Gaussian
+                            fig, ax = plt.subplots(1, 1, figsize=(10, 5), sharex=True)
+                            ax.hist(doppler_noise_filtered, bins=30, density=True, alpha=0.6)
+                            xmin, xmax = ax.get_xlim()  # Get the range from the histogram plot
+                            x = np.linspace(xmin, xmax, 100)  # Create 100 evenly spaced points between
+                            p = norm.pdf(x, mu, std)
+                            ax.plot(x, p, 'k', linewidth=2, linestyle = '--', label=f'Gaussian fit: μ={mu:.3e}, σ={std:.3e}', alpha = 0.4)
                             ax.set_xlabel('Doppler Noise (Hz)')
                             ax.set_ylabel('Counts')
                             ax.set_title(f'{station} Station - Mission {mission_name} on {date}')
@@ -3711,9 +3723,9 @@ class PrideDopplerCharacterization:
                         snr_filtered = snr[date_data_mask]  # Apply mask
                         mean_snr = np.mean(snr_filtered)
                         rms_snr = np.sqrt(np.mean(snr_filtered**2))
+
                         ax = axs[unique_dates_list.index(date)]
                         ax.hist(snr_filtered, bins=30, alpha=0.3, color=colors[i], label = f'mean: {round(mean_snr, 4)}, rms = {round(rms_snr, 4)}')
-
                         ax.set_xlabel('Signal to Noise Ratio (SNR)')
                         ax.set_ylabel('Counts')
                         ax.set_title(f'{station} Station - Mission {mission_name} on {date}')

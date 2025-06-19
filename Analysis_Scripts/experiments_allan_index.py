@@ -17,7 +17,7 @@ for mission_name, dates in experiments_to_analyze.items():
     for date in dates:
         corresponding_month_folder = date[:-2]
         fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{corresponding_month_folder}/{date}/input/complete' #or insert your path
-        output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{corresponding_month_folder}/{date}/output/' #or insert your path
+        output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{corresponding_month_folder}/{date}/output_test/' #or insert your path
         tau_min = 0
         tau_max = 100
         save_dir = output_dir
