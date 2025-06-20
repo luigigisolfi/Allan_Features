@@ -4,7 +4,7 @@
 # %% [markdown]
 """
 This script analyzes radio science experiments for JUICE
-computing and plotting Key Performance Indicators (KPIs) such as mean Signal-to-Noise Ratio (SNR),
+computing and plotting Key Performance Indicators (FoMs) such as mean Signal-to-Noise Ratio (SNR),
 rms SNR, mean Doppler noise, and mean elevation angle across multiple ground stations.
 
 The workflow includes:
@@ -14,7 +14,7 @@ The workflow includes:
 - Visualizing results in a set of subplots
 
 Requirements:
-    - The data files where the KPIs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
+    - The data files where the FoMs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
 """
 
 # %%
@@ -40,7 +40,8 @@ utilities = pride.Utilities() # create Utilities Object
 analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
-missions_to_analyse = ['juice', 'mro', 'mex', 'min']
+#missions_to_analyse = ['juice', 'mro', 'mex', 'min']
+missions_to_analyse = ['juice']
 
 allowed_mean_doppler_filter = 0.1 #Hz = 100 mHz
 bad_observations_mean_doppler_filter = 0.05 #Hz = 50 mHz
@@ -57,7 +58,7 @@ for mission_name in missions_to_analyse:
     else:
         color_dict[mission_name] = generate_random_color()
 
-    root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/'
+    root_dir = f'../PRIDE_DATA_NEW_SAMPLE/analysed_pride_data/'
     mission_root = os.path.join(root_dir, mission_name)
 
     if not os.path.exists(mission_root):
@@ -68,7 +69,6 @@ for mission_name in missions_to_analyse:
         yymm_path = os.path.join(mission_root, yymm_folder)
 
         if not os.path.isdir(yymm_path) or not yymm_folder.startswith(mission_name + '_'):
-            print(yymm_folder)
             continue
 
         for yymmdd_folder in sorted(os.listdir(yymm_path)):
@@ -81,6 +81,8 @@ for mission_name in missions_to_analyse:
             # Define subfolder paths
             fdets_folder_path = os.path.join(full_folder_path, 'input', 'complete')
             output_dir = os.path.join(full_folder_path, 'output')
+
+
             if not os.path.exists(output_dir):
                 print(f'The folder {output_dir} does not exist. Skipping...')
                 continue
@@ -91,7 +93,6 @@ for mission_name in missions_to_analyse:
                 color_dict[yymm] = generate_random_color()
 
             current_color = color_dict[yymm]
-            print('folder',yymm_folder)
             print(f'✅ Processing: {fdets_folder_path} | Color: {current_color}')
 
 
@@ -167,7 +168,7 @@ labels_snr_vs_noise = set()
 fig, axes = plt.subplots(4, 1, figsize=(10, 15), sharex=False)
 ax1, ax2, ax3, ax4 = axes  # Assign subplots
 
-### This part of the code computes the average values of KPIs among all stations belonging to a given experiment,
+### This part of the code computes the average values of FoMs among all stations belonging to a given experiment,
 ### and it does so by weighting the noise by its SNR.
 
 mission_aggregates = defaultdict(lambda: {
@@ -214,17 +215,17 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
 final_means_per_mission = {
     mission: {
         key: np.mean(values) if values else None
-        for key, values in kpis.items()
+        for key, values in FoMs.items()
     }
-    for mission, kpis in mission_aggregates.items()
+    for mission, FoMs in mission_aggregates.items()
 }
 
 # Optional: Print results
-for mission, kpis in final_means_per_mission.items():
+for mission, FoMs in final_means_per_mission.items():
     print(f"\nMission: {mission}")
-    print(f"Mean SNR (dB): {10 * np.log10(kpis['mean_snr']) if kpis['mean_snr'] else 'N/A'}")
-    print(f"Mean Doppler Noise (mHz): {kpis['mean_doppler_noise']}")
-    print(f"RMS Doppler Noise (mHz): {kpis['rms_doppler_noise']}")
+    print(f"Mean SNR (dB): {10 * np.log10(FoMs['mean_snr']) if FoMs['mean_snr'] else 'N/A'}")
+    print(f"Mean Doppler Noise (mHz): {FoMs['mean_doppler_noise']}")
+    print(f"RMS Doppler Noise (mHz): {FoMs['rms_doppler_noise']}")
 
 # Define label tracking sets outside the loop
 labels_snr = set()
@@ -259,9 +260,7 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
 
             # === Prepare label and color ===
 
-            print(experiment_name)
             yymmdd = re.sub(r'^[^_]+_', '', experiment_name)
-            print(yymmdd)
             yymm = yymmdd[:4]
             year = yymm[:2]
             month = yymm[2:]

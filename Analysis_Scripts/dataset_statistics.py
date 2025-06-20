@@ -6,7 +6,7 @@
 # This script can be used on the PRIDE_DATA folder to reproduce Vidhya's paper plots.
 # This script has the division by EXPERIMENT NAMES. If you want the division by times, check the script: dataset_statistics_by_time.
 This script analyzes radio science experiments for: JUICE, MEX, MRO, MARS INSIGHT.
-It computes and plots Key Performance Indicators (KPIs) such as mean Signal-to-Noise Ratio (SNR),
+It computes and plots Key Performance Indicators (FoMs) such as mean Signal-to-Noise Ratio (SNR),
 rms SNR, mean Doppler noise, and mean elevation angle across multiple PRIDE ground stations.
 
 The workflow includes:
@@ -16,7 +16,7 @@ The workflow includes:
 - Visualizing results in a set of subplots
 
 Requirements:
-    - The data files where the KPIs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
+    - The data files where the FoMs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
 """
 # %%
 from pride_characterization_library import PrideDopplerCharacterization
@@ -41,11 +41,7 @@ analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 # Select the experiment(s) for which data analysis will be performed
 experiments_to_analyze = {
-    'juice': ["ec094a", "ec094b"],
-    'mex': ['gr035'],
-    'min': ['ed045a','ed045c','ed045d','ed045e','ed045f'],
-    'mro': ['ec064'],
-    'vex': ['v140106','v140109','v140110','v140113','v140118','v140119','v140120','v140123','v140126','v140127', 'v140131']
+    'juice': ["ec094b"],
 }
 
 allowed_mean_doppler_filter = 0.1 #Hz = 100 mHz
@@ -81,8 +77,8 @@ for mission_name, experiment_names in experiments_to_analyze.items():
         else:
             color_dict[experiment_name] = generate_random_color()
 
-        fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/{experiment_name}/input/complete' #or insert your path
-        output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/{experiment_name}/output/' #or insert your path
+        fdets_folder_path = f'../PRIDE_DATA_SAMPLE/analysed_pride_data/{mission_name}/{experiment_name}/input/complete' #or insert your path
+        output_dir =  f'../PRIDE_DATA_SAMPLE/analysed_pride_data/{mission_name}/{experiment_name}/output/' #or insert your path
 
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
@@ -157,7 +153,7 @@ labels_snr_vs_noise = set()
 fig, axes = plt.subplots(4, 1, figsize=(10, 15), sharex=False)
 ax1, ax2, ax3, ax4 = axes  # Assign subplots
 
-### This part of the code computes the average values of KPIs among all stations belonging to a given experiment,
+### This part of the code computes the average values of FoMs among all stations belonging to a given experiment,
 ### and it does so by weighting the noise by its SNR.
 
 mission_aggregates = defaultdict(lambda: {
@@ -207,17 +203,17 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
 final_means_per_mission = {
     mission: {
         key: np.mean(values) if values else None
-        for key, values in kpis.items()
+        for key, values in FoMs.items()
     }
-    for mission, kpis in mission_aggregates.items()
+    for mission, FoMs in mission_aggregates.items()
 }
 
 # Optional: Print results
-for mission, kpis in final_means_per_mission.items():
+for mission, FoMs in final_means_per_mission.items():
     print(f"\nMission: {mission}")
-    print(f"Mean SNR (dB): {10 * np.log10(kpis['mean_snr']) if kpis['mean_snr'] else 'N/A'}")
-    print(f"Mean Doppler Noise (mHz): {kpis['mean_doppler_noise']}")
-    print(f"RMS Doppler Noise (mHz): {kpis['rms_doppler_noise']}")
+    print(f"Mean SNR (dB): {10 * np.log10(FoMs['mean_snr']) if FoMs['mean_snr'] else 'N/A'}")
+    print(f"Mean Doppler Noise (mHz): {FoMs['mean_doppler_noise']}")
+    print(f"RMS Doppler Noise (mHz): {FoMs['rms_doppler_noise']}")
 
 ##########
 ##########

@@ -3574,7 +3574,7 @@ class PrideDopplerCharacterization:
         ########################################################################################################################################
         ########################################################################################################################################
 
-        def get_doppler_noise_statistics(self, extracted_data_list, mission_name, save_dir=None, suppress=False, remove_outliers = False):
+        def get_doppler_noise_statistics(self, extracted_data_list, mission_name, experiment_name = None, save_dir=None, suppress=False, remove_outliers = False):
             """
             Plots histograms of Doppler noise for each station, grouped by date.
 
@@ -3650,7 +3650,10 @@ class PrideDopplerCharacterization:
                             ax.plot(x, p, 'k', linewidth=2, linestyle = '--', label=f'Gaussian fit: μ={mu:.3e}, σ={std:.3e}', alpha = 0.4)
                             ax.set_xlabel('Doppler Noise (Hz)')
                             ax.set_ylabel('Counts')
-                            ax.set_title(f'{station} Station - Mission {mission_name} on {date}')
+                            if experiment_name:
+                                ax.set_title(f'{station} Station - Mission {mission_name} on {date}, Experiment {experiment_name}')
+                            else:
+                                ax.set_title(f'{station} Station - Mission {mission_name} on {date}')
                             ax.legend()
 
                 plt.tight_layout()
@@ -3662,7 +3665,7 @@ class PrideDopplerCharacterization:
                 if not suppress:
                     plt.show()
 
-        def get_snr_statistics(self, extracted_data_list, mission_name, save_dir=None, suppress=False, remove_outliers = False):
+        def get_snr_statistics(self, extracted_data_list, mission_name, experiment_name = None, save_dir=None, suppress=False, remove_outliers = False):
             """
             Plots histograms of SNR for each station, grouped by date.
 
@@ -3728,7 +3731,10 @@ class PrideDopplerCharacterization:
                         ax.hist(snr_filtered, bins=30, alpha=0.3, color=colors[i], label = f'mean: {round(mean_snr, 4)}, rms = {round(rms_snr, 4)}')
                         ax.set_xlabel('Signal to Noise Ratio (SNR)')
                         ax.set_ylabel('Counts')
-                        ax.set_title(f'{station} Station - Mission {mission_name} on {date}')
+                        if experiment_name:
+                            ax.set_title(f'{station} Station - Mission {mission_name} on {date}, Experiment {experiment_name}')
+                        else:
+                            ax.set_title(f'{station} Station - Mission {mission_name} on {date}')
                         ax.legend()
 
                 plt.tight_layout()
@@ -3741,7 +3747,7 @@ class PrideDopplerCharacterization:
                     plt.show()
 
 
-        def plot_doppler_noise_distribution(self, extracted_data_list, mission_name, save_dir=None, suppress=True, remove_outliers = True):
+        def plot_doppler_noise_distribution(self, extracted_data_list, mission_name, experiment_name = None, save_dir=None, suppress=True, remove_outliers = True):
             """
             Plots the Doppler noise distribution for all stations in a single histogram using sns.displot.
             Adjusts for stations with very bad noise.
@@ -3787,7 +3793,11 @@ class PrideDopplerCharacterization:
             g = sns.displot(df, x="Doppler Noise (Hz)", hue="Station", kind="kde", palette="tab10", fill = True)
 
 
-            plt.title(f"Doppler Noise Distribution - {mission_name}")
+            if experiment_name:
+                plt.title(f"Doppler Noise Distribution - Mission:  {mission_name}, Experiment: {experiment_name}")
+            else:
+                plt.title(f"Doppler Noise Distribution - Mission {mission_name}")
+
             plt.xlabel("Doppler Noise (Hz)")
             plt.ylabel("Counts")
             plt.tight_layout()
@@ -3799,7 +3809,7 @@ class PrideDopplerCharacterization:
             if not suppress:
                 plt.show()
 
-        def plot_snr_distribution(self, extracted_data_list, mission_name, save_dir=None, suppress=True):
+        def plot_snr_distribution(self, extracted_data_list, mission_name, experiment_name = None, save_dir=None, suppress=True):
             """
             Plots the Doppler noise distribution for all stations in a single histogram using sns.displot.
             Adjusts for stations with very bad noise.
@@ -3834,8 +3844,10 @@ class PrideDopplerCharacterization:
 
             g = sns.displot(df, x="SNR", hue="Station", kind="kde", palette="tab10", fill = True)
 
-
-            plt.title(f"SNR Distribution - {mission_name}")
+            if experiment_name:
+                plt.title(f"SNR Distribution - {mission_name}, Experiment: {experiment_name}")
+            else:
+                plt.title(f"SNR Distribution - {mission_name}")
             plt.xlabel("SNR")
             plt.ylabel("Counts")
             plt.xscale('log')
@@ -3849,7 +3861,7 @@ class PrideDopplerCharacterization:
                 plt.show()
 
 
-        def plot_snr_and_doppler_noise_statistics(self, extracted_data_list, mission_name, save_dir=None, suppress=False):
+        def plot_snr_and_doppler_noise_statistics(self, extracted_data_list, mission_name, experiment_name = None, save_dir=None, suppress=False):
             """
             Computes the median and standard deviation of SNR and Doppler noise for each station on each day,
             and creates two subplots with error bars representing 1 standard deviation.
@@ -3918,7 +3930,10 @@ class PrideDopplerCharacterization:
 
             if save_dir:
                 os.makedirs(f'{save_dir}', exist_ok=True)
-                plt.savefig(f"{save_dir}/snr_and_doppler_noise_statistics_{mission_name}.png")
+                if experiment_name:
+                    plt.savefig(f"{save_dir}/snr_and_doppler_noise_statistics_{mission_name}_{experiment_name}.png")
+                else:
+                    plt.savefig(f"{save_dir}/snr_and_doppler_noise_statistics_{mission_name}.png")
 
             if not suppress:
                 plt.show()
@@ -4014,7 +4029,7 @@ class PrideDopplerCharacterization:
                     remove_outliers= remove_outliers
                 )
 
-        def get_elevation_plot(self, files_list, target, station_ids, mission_name, suppress=False, save_dir=None):
+        def get_elevation_plot(self, files_list, target, station_ids, mission_name, experiment_name = None, suppress=False, save_dir=None):
             """
             Reads a list of observation files, extracts time bounds,
             queries JPL Horizons for elevation data, and plots results.
@@ -4105,7 +4120,10 @@ class PrideDopplerCharacterization:
             utc_date = times[0].date()
             plt.xlabel(f"UTC Time (HH:MM:SS) on {utc_date}")
             plt.ylabel("Elevation (degrees)")
-            plt.title(f"Elevation Plot for {target} - Mission {mission_name}")
+            if experiment_name:
+                plt.title(f"Elevation Plot - Mission:  {mission_name}, Experiment: {experiment_name}")
+            else:
+                plt.title(f"Elevation Plot - Mission {mission_name}")
             plt.legend()
             plt.grid(True)
             plt.xticks(rotation=45)
