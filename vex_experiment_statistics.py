@@ -86,7 +86,6 @@ for vex_year_month in vex_year_month_list:
                     extracted_parameters_list= extracted_data_list,
                     doppler_noise_statistics = True,
                     snr_statistics= True,
-                    remove_outliers = True,
                     save_dir = os.path.join(output_dir, 'statistics')
                 )
 

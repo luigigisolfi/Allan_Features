@@ -57,6 +57,7 @@ class PrideDopplerCharacterization:
         def __init__(self):
             self.result = 0
             self.Utilities = PrideDopplerCharacterization.Utilities()
+            self.Analysis = PrideDopplerCharacterization.Analysis(self, self.Utilities)
             self.ProcessVexFiles = PrideDopplerCharacterization.ProcessVexFiles(self, self.Utilities)
 
         ########################################################################################################################################
@@ -270,7 +271,7 @@ class PrideDopplerCharacterization:
 
 
 
-        def extract_parameters(self, filename, remove_outliers=True):
+        def extract_parameters(self, filename):
             print(f'Extracting Parameters for filename: {filename}...')
 
             fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
@@ -345,15 +346,6 @@ class PrideDopplerCharacterization:
             self.doppler_noise_hz = doppler_noise_hz
             self.frequency_detection = frequency_detection
 
-            # Remove outliers
-            if remove_outliers:
-                doppler_arr = np.array(doppler_noise_hz)
-                mask = (doppler_arr >= np.percentile(doppler_arr, 5)) & (doppler_arr <= np.percentile(doppler_arr, 80))
-                self.utc_datetime = list(np.array(self.utc_datetime)[mask])
-                self.doppler_noise_hz = list(doppler_arr[mask])
-                self.frequency_detection = list(np.array(frequency_detection)[mask])
-                self.signal_to_noise = list(np.array(signal_to_noise)[mask])
-
             return {
                 'receiving_station_name': self.receiving_station_name,
                 'utc_datetime': self.utc_datetime,
@@ -421,12 +413,9 @@ class PrideDopplerCharacterization:
                 if file.startswith('Fdets') and file.endswith('r2i.txt'):
                     file_path = os.path.join(directory_path, file)
 
-                    extracted_parameters = self.extract_parameters(
-                        file_path,
-                        remove_outliers = True
-                    )
-
+                    extracted_parameters = self.extract_parameters(file_path)
                     extracted_data_list.append(extracted_parameters)
+
 
             return extracted_data_list
 
@@ -2590,7 +2579,7 @@ class PrideDopplerCharacterization:
 
         ########################################################################################################################################
         ########################################################################################################################################
-        def plot_parameters_error_bounds(self, extracted_data, tau_min = None, tau_max = None, save_dir=None, suppress = False, plot_madev_only = True, color_regions = False):
+        def plot_parameters_error_bounds(self, extracted_data, tau_min = None, tau_max = None, save_dir=None, suppress = False, plot_oadev_only = True, color_regions = False):
 
             """
             This function is supposed to be an improvement of plot_parameters, as
@@ -2615,7 +2604,7 @@ class PrideDopplerCharacterization:
                    save_dir (to save the plot) [optional, default is None]
                    suppress (to suppress the plot show) [optional, default is False]
 
-            Output: mADEV & SNR plots
+            Output: oadev & SNR plots
 
             NOTES: Please note that, within this function, the slope is computed between data points only
                    (differently from the get_slope_at_tau function, where a cubic spline interpolation is used,
@@ -2648,8 +2637,8 @@ class PrideDopplerCharacterization:
                 # Generate x-tick labels based on positions
                 xtick_labels = [utc_datetime[i].strftime("%H:%M:%S") for i in xticks]
 
-                if plot_madev_only:
-                    # Set up the figure for only Modified Allan Deviation plot
+                if plot_oadev_only:
+                    # Set up the figure for only Overlapping Allan Deviation plot
                     fig, ax = plt.subplots(figsize=(10, 5))
                 else:
                     # Set up the 4x1 subplot figure
@@ -2702,9 +2691,9 @@ class PrideDopplerCharacterization:
                     print("Most common difference is zero or not found; cannot calculate rate_fdets. Hence, no plot is available.")
                     return(None)
 
-                # Proceed to calculate modified Allan deviation, ensuring no invalid values
+                # Proceed to calculate Overlapping Allan Deviation, ensuring no invalid values
                 try:
-                    taus_doppler, mdev_doppler, original_errors, ns = allantools.mdev(
+                    taus_doppler, oadev_doppler, original_errors, ns = allantools.oadev(
                         np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
                         rate=rate_fdets,
                         data_type='freq',
@@ -2726,7 +2715,7 @@ class PrideDopplerCharacterization:
                     taus_doppler = taus_doppler[taus_doppler <= tau_max]
 
                 # Defining Weights
-                mdev_doppler = mdev_doppler[:taus_doppler.shape[0]]
+                oadev_doppler = oadev_doppler[:taus_doppler.shape[0]]
                 errors = original_errors[:taus_doppler.shape[0]]
                 rms_values = original_errors
                 weights = 1 / (np.array(rms_values) ** 2)
@@ -2736,39 +2725,39 @@ class PrideDopplerCharacterization:
                 cmap = cm.get_cmap('plasma')  # You can choose any colormap
 
                 # Generate the white noise reference line
-                mdev_white = [mdev_doppler[0]]  # Initialize with the first value
+                oadev_white = [oadev_doppler[0]]  # Initialize with the first value
                 for i in range(1, len(taus_doppler)):
-                    mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
+                    oadev_white.append(oadev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
 
                 log_ticks = np.logspace(np.log10(taus_doppler[0]), np.log10(taus_doppler[-1]), num=15)
                 valid_xticks = np.searchsorted(taus_doppler, log_ticks)
                 valid_xticks = valid_xticks[valid_xticks < len(taus_doppler)]
 
-                if plot_madev_only:
+                if plot_oadev_only:
                     ax.legend()
-                    ax.errorbar(taus_doppler, mdev_doppler, yerr=errors)
-                    mdev_white = [mdev_doppler[0]]
+                    ax.errorbar(taus_doppler, oadev_doppler, yerr=errors)
+                    oadev_white = [oadev_doppler[0]]
                     for i in range(1, len(taus_doppler)):
-                        mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
-                    ax.loglog(taus_doppler, mdev_white, linestyle='--', color='black', label=r'White Freq. Noise $\propto{\tau^{-0.5}}$')
-                    ax.loglog(taus_doppler, mdev_doppler, marker='o', markersize = 3, linestyle='dashed', color='b', label='Doppler Noise')
-                    #ax.axhline(mdev_doppler[0], color='fuchsia', linestyle='dashdot', label=r'Pink Noise $\propto{\tau^0}$')
+                        oadev_white.append(oadev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
+                    ax.loglog(taus_doppler, oadev_white, linestyle='--', color='black', label=r'White Freq. Noise $\propto{\tau^{-0.5}}$')
+                    ax.loglog(taus_doppler, oadev_doppler, marker='o', markersize = 3, linestyle='dashed', color='b', label='Doppler Noise')
+                    #ax.axhline(oadev_doppler[0], color='fuchsia', linestyle='dashdot', label=r'Pink Noise $\propto{\tau^0}$')
                     ax.set_xlabel('Averaging Time (s)')
-                    ax.set_ylabel('Modified Allan Deviation')
-                    ax.set_title('Modified Allan Deviation Plot')
+                    ax.set_ylabel('Overlapping Allan Deviation')
+                    ax.set_title('Overlapping Allan Deviation Plot')
                     ax.grid(True, which="both", ls="--")
                     #ax.tick_params(axis='x', which='major', labelsize=8, rotation=45)
                 else:
-                    axs[0].errorbar(taus_doppler, mdev_doppler, yerr=errors)
-                    mdev_white = [mdev_doppler[0]]
+                    axs[0].errorbar(taus_doppler, oadev_doppler, yerr=errors)
+                    oadev_white = [oadev_doppler[0]]
                     for i in range(1, len(taus_doppler)):
-                        mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
-                    axs[0].loglog(taus_doppler, mdev_white, linestyle='--', color='black', label=r'White Freq. Noise $\propto{\tau^{-0.5}}$')
-                    axs[0].loglog(taus_doppler, mdev_doppler, marker='o', linestyle='dashed', color='b', label='Doppler Noise')
-                    #axs[0].axhline(mdev_doppler[0], color='fuchsia', linestyle='dashdot', label=r'Pink Noise $\propto{\tau^0}$')
+                        oadev_white.append(oadev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
+                    axs[0].loglog(taus_doppler, oadev_white, linestyle='--', color='black', label=r'White Freq. Noise $\propto{\tau^{-0.5}}$')
+                    axs[0].loglog(taus_doppler, oadev_doppler, marker='o', linestyle='dashed', color='b', label='Doppler Noise')
+                    #axs[0].axhline(oadev_doppler[0], color='fuchsia', linestyle='dashdot', label=r'Pink Noise $\propto{\tau^0}$')
                     axs[0].set_xlabel('Averaging Time (s)')
-                    axs[0].set_ylabel('Modified Allan Deviation')
-                    axs[0].set_title('Modified Allan Deviation Plot')
+                    axs[0].set_ylabel('Overlapping Allan Deviation')
+                    axs[0].set_title('Overlapping Allan Deviation Plot')
                     axs[0].grid(True, which="both", ls="--")
                     #axs[0].tick_params(axis='x', which='major', labelsize=8, rotation=45)
 
@@ -2781,16 +2770,16 @@ class PrideDopplerCharacterization:
                     threshold = 0.1  # Define a threshold for closeness
 
                     for i in range(len(taus_doppler) - 1):
-                        slope = (np.log10(mdev_doppler[i + 1]) - np.log10(mdev_doppler[i])) / (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i]))
+                        slope = (np.log10(oadev_doppler[i + 1]) - np.log10(oadev_doppler[i])) / (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i]))
                         slopes.append(slope)
 
                         # here, for slope_error_minus, we are creating a "double triangle" connecting
                         # the lowest value at i with the highest at i+1 and checking the slope.
                         # same for slope_error_plus, but with interchanged endpoints
 
-                        slope_error_plus = ((np.log10(mdev_doppler[i + 1] - errors[i + 1]) - np.log10(mdev_doppler[i] + errors[i])) /
+                        slope_error_plus = ((np.log10(oadev_doppler[i + 1] - errors[i + 1]) - np.log10(oadev_doppler[i] + errors[i])) /
                                             (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i])))
-                        slope_error_minus = ((np.log10(mdev_doppler[i + 1] + errors[i + 1]) - np.log10(mdev_doppler[i] - errors[i])) /
+                        slope_error_minus = ((np.log10(oadev_doppler[i + 1] + errors[i + 1]) - np.log10(oadev_doppler[i] - errors[i])) /
                                              (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i])))
 
                         # Check if the slope is close to the target slope
@@ -2815,7 +2804,7 @@ class PrideDopplerCharacterization:
                             #print(f"Interval {taus_doppler[i]:.3f} - {taus_doppler[i+1]:.3f}, Weight: {weight:.3f}, Color: {color}")
 
                             # Plot the interval using axvspan
-                            if plot_madev_only:
+                            if plot_oadev_only:
                                 ax.axvspan(taus_doppler[i], taus_doppler[i + 1], color=color, alpha=0.1)
                             else:
 
@@ -2831,7 +2820,7 @@ class PrideDopplerCharacterization:
                             if is_close[i]:
                                 weight = mean_weights[i]
                                 color = cmap(weight)
-                                if plot_madev_only:
+                                if plot_oadev_only:
                                     ax.axvspan(taus_doppler[i], taus_doppler[i + 1], color=color, alpha=0.1)
                                     hatch_patch = mpatches.Patch(
                                         facecolor='white', edgecolor='black', hatch='//', label="Acceptable Regions"
@@ -2853,7 +2842,7 @@ class PrideDopplerCharacterization:
                                     axs[0].legend(handles=[hatch_patch])
 
                                     # Set x-ticks on log scale
-                if plot_madev_only:
+                if plot_oadev_only:
                     ax.set_xticks(taus_doppler[valid_xticks])
                     ax.set_xticklabels([f"{round(tick)}" for tick in taus_doppler[valid_xticks]])
                     ax.legend()
@@ -2866,7 +2855,7 @@ class PrideDopplerCharacterization:
                 sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=np.min(norm_weights), vmax=np.max(norm_weights)))
                 sm.set_array([])  # Required for ScalarMappable
 
-                if plot_madev_only:
+                if plot_oadev_only:
                     cbar = fig.colorbar(sm, ax = ax, alpha = 0.3)
                 else:
                     cbar = fig.colorbar(sm, ax=axs[0], alpha = 0.3)
@@ -2896,9 +2885,52 @@ class PrideDopplerCharacterization:
         ########################################################################################################################################
 
 
-        def plot_madev_stations(self, extracted_data_list, mission_name, tau_min=None, tau_max=None, save_dir=None, suppress=False, color_regions=False):
+        def z_score_filter(self, extracted_parameters_list, keys=('signal_to_noise', 'doppler_noise_hz'), threshold=3.5):
+
+
+            if len(extracted_parameters_list) == 0:
+                return extracted_parameters_list
+
+            # Step 1: Compute global filter masks based on keys
+            print([entry for entry in extracted_parameters_list])
+            keep_masks = [np.ones(len(entry[keys[0]]), dtype=bool) for entry in extracted_parameters_list]
+
+            for key in keys:
+                all_values = []
+                index_map = []
+
+                for i, entry in enumerate(extracted_parameters_list):
+                    values = entry.get(key, [])
+                    for j, val in enumerate(values):
+                        all_values.append(val)
+                        index_map.append((i, j))
+
+                all_values = np.array(all_values)
+                median = np.median(all_values)
+                mad = np.median(np.abs(all_values - median))
+
+                if mad == 0:
+                    continue
+
+                modified_z = 0.6745 * (all_values - median) / mad
+                mask = np.abs(modified_z) < threshold
+
+                for keep, (i, j) in zip(mask, index_map):
+                    if not keep:
+                        keep_masks[i][j] = False
+
+            # Step 2: Apply the consistent keep_masks to all keys
+            for i, entry in enumerate(extracted_parameters_list):
+                mask = keep_masks[i]
+                for key in entry:
+                    values = entry[key]
+                    if isinstance(values, list) and len(values) == len(mask):
+                        entry[key] = [v for v, k in zip(values, mask) if k]
+
+            return extracted_parameters_list
+        def plot_oadev_stations(self, extracted_data_list, mission_name, experiment_name = None, tau_min=None, tau_max=None, save_dir=None, suppress=False, color_regions=False):
             """
-            Plots Modified Allan Deviation (mADEV) and saves one plot per unique date and corresponding data to CSV files.
+            Plots Overlapping Allan Deviation (oadev) and saves one plot per unique date and corresponding data to CSV files.
 
             Args:
                 extracted_data_list (list): List of extracted_data dicts, each containing:
@@ -2949,9 +2981,9 @@ class PrideDopplerCharacterization:
 
                     rate_fdets = 1 / (most_common_diff[0][0] * 86400)
 
-                    # Compute mADEV
+                    # Compute oadev
                     try:
-                        taus, mdev, errors, _ = allantools.oadev(
+                        taus, oadev, errors, _ = allantools.oadev(
                             np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
                             rate=rate_fdets,
                             data_type='freq',
@@ -2969,7 +3001,7 @@ class PrideDopplerCharacterization:
                         tau_mask &= taus <= tau_max
 
                     taus = taus[tau_mask]
-                    mdev = np.array(mdev)[tau_mask]
+                    oadev = np.array(oadev)[tau_mask]
                     errors = np.array(errors)[tau_mask]
 
                     # Only use data from this date
@@ -2978,19 +3010,22 @@ class PrideDopplerCharacterization:
                         continue
 
                     # Plot
-                    ax.errorbar(taus, mdev, yerr=errors, fmt='o', markersize=3, linestyle='dashed',
+                    ax.errorbar(taus, oadev, yerr=errors, fmt='o', markersize=3, linestyle='dashed',
                                 color=color, label=receiving_station_name)
 
                     # Save rows for CSV
-                    for t, m, e in zip(taus, mdev, errors):
+                    for t, m, e in zip(taus, oadev, errors):
                         output_rows.append([t, m, e, receiving_station_name])
 
                 # Finalize plot
                 ax.set_xscale("log")
                 ax.set_yscale("log")
                 ax.set_xlabel('Averaging Time (s)')
-                ax.set_ylabel('Modified Allan Deviation')
-                ax.set_title(f'Mission {mission_name} on {date}')
+                ax.set_ylabel('Overlapping Allan Deviation')
+                if experiment_name:
+                    ax.set_title(f'Mission {mission_name} on {date}, experiment {experiment_name}')
+                else:
+                    ax.set_title(f'Mission {mission_name} on {date}')
                 ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
                 ax.grid(True, which="both", ls="--", alpha=0.3)
 
@@ -3018,11 +3053,11 @@ class PrideDopplerCharacterization:
                     csv_path = os.path.join(save_dir, f"{mission_name}_{date}_mad.csv")
                     with open(csv_path, 'w', newline='') as f:
                         writer = csv.writer(f)
-                        writer.writerow(["Tau (s)", "Modified Allan Deviation", "Error", "Station"])
+                        writer.writerow(["Tau (s)", "Overlapping Allan Deviation", "Error", "Station"])
                         writer.writerows(output_rows)
 
 
-        def get_all_stations_madev_plot(self, fdets_folder_path, mission_name, extracted_parameters_list = None, tau_min = None, tau_max = None, suppress = False, plot_madev_only = True, save_dir = None):
+        def get_all_stations_oadev_plot(self, fdets_folder_path, mission_name, experiment_name = None, extracted_parameters_list = None, tau_min = None, tau_max = None, z_score_filter = True, save_dir = None):
 
             if not extracted_parameters_list:
                 extracted_parameters_list =list()
@@ -3031,20 +3066,29 @@ class PrideDopplerCharacterization:
                     if file.startswith('Fdets') and file.endswith('.txt'):
                         file_path = os.path.join(directory_path, file)
 
-                        extracted_parameters = self.ProcessFdets.extract_parameters(
-                            file_path,
-                            remove_outliers = True
-                        )
-
+                        extracted_parameters = self.ProcessFdets.extract_parameters(file_path)
                         extracted_parameters_list.append(extracted_parameters)
 
-            self.plot_madev_stations(
-                extracted_parameters_list,
-                mission_name = mission_name,
-                tau_min = tau_min,
-                tau_max = tau_max,
-                suppress = False,
-                save_dir = save_dir)
+            if z_score_filter:
+                extracted_parameters_list = self.z_score_filter(extracted_parameters_list)
+
+            if experiment_name:
+                self.plot_oadev_stations(
+                    extracted_parameters_list,
+                    mission_name = mission_name,
+                    experiment_name=experiment_name,
+                    tau_min = tau_min,
+                    tau_max = tau_max,
+                    suppress = False,
+                    save_dir = save_dir)
+            else:
+                self.plot_oadev_stations(
+                    extracted_parameters_list,
+                    mission_name = mission_name,
+                    tau_min = tau_min,
+                    tau_max = tau_max,
+                    suppress = False,
+                    save_dir = save_dir)
 
         def get_all_outputs(self, root_folder, save_index = False, save_plots = False): # Function to process and save plots for each TXT file
 
@@ -3088,14 +3132,6 @@ class PrideDopplerCharacterization:
                                 # Extract data from the text file
                                 extracted_data = self.ProcessFdets.extract_parameters(txt_file_path)
 
-                                # Check if start_date_time contains a space
-                            #     if ' ' in extracted_data["utc_datetime"]:
-                            #         print(f"Skipping file {filename} due to invalid start_date_time format.\n")
-                            #         continue
-                            #
-                            # except IndexError:
-                            #     print(f"Skipping file: {filename} due to insufficient lines in the file.\n")
-                            #     continue
                             except Exception as e:
                                 print(f"Error processing file {filename}: {e}")
                                 continue
@@ -3118,7 +3154,7 @@ class PrideDopplerCharacterization:
                                     extracted_data,
                                     save_dir = plot_dir,
                                     suppress = True,
-                                    plot_madev_only = True,
+                                    plot_oadev_only = True,
                                     tau_min = 0,
                                     tau_max = 100)
 
@@ -3137,14 +3173,6 @@ class PrideDopplerCharacterization:
                                 # Extract data from the text file
                                 extracted_data = self.ProcessFdets.extract_parameters(txt_file_path)
 
-                            #     # Check if start_date_time contains a space
-                            #     if ' ' in extracted_data["utc_datetime"]:
-                            #         print(f"Skipping file {filename} due to invalid start_date_time format.")
-                            #         continue
-                            #
-                            # except IndexError:
-                            #     print(f"Skipping file {filename} due to insufficient lines in the file.")
-                            #     continue
                             except Exception as e:
                                 print(f"Error processing file {filename}: {e}")
                                 continue
@@ -3167,7 +3195,7 @@ class PrideDopplerCharacterization:
                                     extracted_data,
                                     save_dir = plot_dir,
                                     suppress = True,
-                                    plot_madev_only = True,
+                                    plot_oadev_only = True,
                                     tau_min = 0,
                                     tau_max = 100)
 
@@ -3236,9 +3264,9 @@ class PrideDopplerCharacterization:
                 else:
                     print("Most common difference is zero or not found; cannot calculate rate_fdets. Hence, no plot is available.")
                     return(None)
-                # Proceed to calculate modified Allan deviation, ensuring no invalid values
+                # Proceed to calculate Overlapping Allan Deviation, ensuring no invalid values
                 try:
-                    taus_doppler, mdev_doppler, errors, ns = allantools.mdev(
+                    taus_doppler, oadev_doppler, errors, ns = allantools.oadev(
                         np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
                         rate=rate_fdets,
                         data_type='freq',
@@ -3256,9 +3284,9 @@ class PrideDopplerCharacterization:
                 cmap = cm.get_cmap('plasma')  # You can choose any colormap
 
                 # Generate the white noise reference line
-                mdev_white = [mdev_doppler[0]]  # Initialize with the first value
+                oadev_white = [oadev_doppler[0]]  # Initialize with the first value
                 for i in range(1, len(taus_doppler)):
-                    mdev_white.append(mdev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
+                    oadev_white.append(oadev_doppler[0] * (taus_doppler[i] / taus_doppler[0])**(-1/2))
 
                 # Calculate slopes and determine is_close
                 slopes = []
@@ -3281,16 +3309,16 @@ class PrideDopplerCharacterization:
                 num_points = len(taus_doppler) - 1
 
                 for i in range(num_points):
-                    slope = (np.log10(mdev_doppler[i + 1]) - np.log10(mdev_doppler[i])) / (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i]))
+                    slope = (np.log10(oadev_doppler[i + 1]) - np.log10(oadev_doppler[i])) / (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i]))
                     slopes.append(slope)
 
                     # here, for slope_error_minus, we are creating a "double triangle" connecting
                     # the lowest value at i with the highest at i+1 and checking the slope.
                     # same for slope_error_plus, but with interchanged endpoints
 
-                    slope_error_plus = ((np.log10(mdev_doppler[i + 1] - errors[i + 1]) - np.log10(mdev_doppler[i] + errors[i])) /
+                    slope_error_plus = ((np.log10(oadev_doppler[i + 1] - errors[i + 1]) - np.log10(oadev_doppler[i] + errors[i])) /
                                         (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i])))
-                    slope_error_minus = ((np.log10(mdev_doppler[i + 1] + errors[i + 1]) - np.log10(mdev_doppler[i] - errors[i])) /
+                    slope_error_minus = ((np.log10(oadev_doppler[i + 1] + errors[i + 1]) - np.log10(oadev_doppler[i] - errors[i])) /
                                          (np.log10(taus_doppler[i + 1]) - np.log10(taus_doppler[i])))
 
                     # Check if the slope is close to the target slope
@@ -3341,14 +3369,14 @@ class PrideDopplerCharacterization:
 
         ########################################################################################################################################
         ########################################################################################################################################
-        #Function to compute the averaged Modified Allan Deviation Slope for a given tau (in seconds)
+        #Function to compute the averaged Overlapping Allan Deviation Slope for a given tau (in seconds)
         def get_slope_at_tau(self, extracted_data, tau, delta_tau):
 
             """
 
-            This function computes the mADEV slope at a given tau, using numerical derivatives of the type:
+            This function computes the oadev slope at a given tau, using numerical derivatives of the type:
 
-            slope = [mADEV(tau) + mADEV(tau+dt)]/dt
+            slope = [oadev(tau) + oadev(tau+dt)]/dt
 
             The choice of tau and dt is somehow arbitrary and is given as input
 
@@ -3377,9 +3405,9 @@ class PrideDopplerCharacterization:
                 return(None)
 
 
-            # Proceed to calculate modified Allan deviation, ensuring no invalid values
+            # Proceed to calculate Overlapping Allan Deviation, ensuring no invalid values
             try:
-                taus_doppler, mdev_doppler, errors, ns = allantools.mdev(
+                taus_doppler, oadev_doppler, errors, ns = allantools.oadev(
                     np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
                     rate=rate_fdets,
                     data_type='freq',
@@ -3388,8 +3416,8 @@ class PrideDopplerCharacterization:
             except Exception as e:
                 print(f"An error occurred: {e}")
 
-            # Calculate Modified Allan Deviation for Doppler noise
-            taus_doppler, mdev_doppler, errors, ns = allantools.mdev(
+            # Calculate Overlapping Allan Deviation for Doppler noise
+            taus_doppler, oadev_doppler, errors, ns = allantools.oadev(
                 np.array(doppler_noise_hz) / (np.array(frequency_detection) + base_frequency),
                 rate=rate_fdets,
                 data_type='freq',
@@ -3402,18 +3430,18 @@ class PrideDopplerCharacterization:
 
 
             # Interpolation
-            interpolated_data = CubicSpline(taus_doppler, mdev_doppler, extrapolate=True)
+            interpolated_data = CubicSpline(taus_doppler, oadev_doppler, extrapolate=True)
 
             # Compute values at tau and tau + delta_tau
-            mdev_tau = interpolated_data(tau)
-            mdev_tau_delta = interpolated_data(tau + delta_tau)
+            oadev_tau = interpolated_data(tau)
+            oadev_tau_delta = interpolated_data(tau + delta_tau)
 
             # Compute the slope in the log-log plot
-            if mdev_tau == 0 or mdev_tau_delta == 0:
-                print("MDEV values at tau or tau + delta_tau cannot be zero.")
+            if oadev_tau == 0 or oadev_tau_delta == 0:
+                print("oadev values at tau or tau + delta_tau cannot be zero.")
                 return(None)
 
-            self.slope = (np.log10(mdev_tau_delta) - np.log10(mdev_tau)) / (np.log10(tau + delta_tau) - np.log10(tau))
+            self.slope = (np.log10(oadev_tau_delta) - np.log10(oadev_tau)) / (np.log10(tau + delta_tau) - np.log10(tau))
 
             return(self.slope)
 
@@ -3421,7 +3449,7 @@ class PrideDopplerCharacterization:
         ########################################################################################################################################
 
         def plot_user_defined_parameters(self, extracted_data, save_dir=None, suppress=False,
-                                         plot_snr=False, plot_doppler_noise=False, plot_fdets=False, plot_mad=False, remove_outliers=True):
+                                         plot_snr=False, plot_doppler_noise=False, plot_fdets=False, plot_mad=False):
             """
             Description:
             Plots user-defined parameters (such as Signal-to-Noise Ratio, Doppler Noise, Frequency Detections, and MAD)
@@ -3487,19 +3515,10 @@ class PrideDopplerCharacterization:
                 output_data = []
 
                 if plot_snr:
-                    if remove_outliers:
-                        lower_percentile = np.percentile(signal_to_noise, 5)
-                        upper_percentile = np.percentile(signal_to_noise, 95)
-                        snr_mask = (signal_to_noise >= lower_percentile) & (signal_to_noise <= upper_percentile)
-                        filtered_utc_datetime_snr = np.array(utc_datetime)[snr_mask]
-                        filtered_signal_to_noise = np.array(signal_to_noise)[snr_mask]
-                        axs[plot_index].plot(range(len(filtered_utc_datetime_snr)), filtered_signal_to_noise, marker='+', linestyle='-',
-                                             color='blue', markersize=5, linewidth=0.5)
-                    else:
-                        filtered_utc_datetime_snr = utc_datetime
-                        filtered_signal_to_noise = signal_to_noise
-                        axs[plot_index].plot(range(len(utc_datetime)), signal_to_noise, marker='+', linestyle='-',
-                                             color='blue', markersize=5, linewidth=0.5)
+                    filtered_utc_datetime_snr = utc_datetime
+                    filtered_signal_to_noise = signal_to_noise
+                    axs[plot_index].plot(range(len(utc_datetime)), signal_to_noise, marker='+', linestyle='-',
+                                         color='blue', markersize=5, linewidth=0.5)
 
                     for t, snr in zip(filtered_utc_datetime_snr, filtered_signal_to_noise):
                         output_data.append([t.strftime('%Y-%m-%d %H:%M:%S'), 'SNR', snr])
@@ -3513,19 +3532,10 @@ class PrideDopplerCharacterization:
                     plot_index += 1
 
                 if plot_doppler_noise:
-                    if remove_outliers:
-                        lower_percentile = np.percentile(doppler_noise_hz, 5)
-                        upper_percentile = np.percentile(doppler_noise_hz, 95)
-                        doppler_mask = (doppler_noise_hz >= lower_percentile) & (doppler_noise_hz <= upper_percentile)
-                        filtered_utc_datetime_doppler = np.array(utc_datetime)[doppler_mask]
-                        filtered_doppler_noise_hz = np.array(doppler_noise_hz)[doppler_mask]
-                        axs[plot_index].plot(range(len(filtered_utc_datetime_doppler)), filtered_doppler_noise_hz, marker='+', linestyle='-',
-                                             color='orange', markersize=5, linewidth=0.5)
-                    else:
-                        filtered_utc_datetime_doppler = utc_datetime
-                        filtered_doppler_noise_hz = doppler_noise_hz
-                        axs[plot_index].plot(range(len(utc_datetime)), doppler_noise_hz, marker='+', linestyle='-',
-                                             color='orange', markersize=5, linewidth=0.5)
+                    filtered_utc_datetime_doppler = utc_datetime
+                    filtered_doppler_noise_hz = doppler_noise_hz
+                    axs[plot_index].plot(range(len(utc_datetime)), doppler_noise_hz, marker='+', linestyle='-',
+                                         color='orange', markersize=5, linewidth=0.5)
 
                     for t, doppler in zip(filtered_utc_datetime_doppler, filtered_doppler_noise_hz):
                         output_data.append([t.strftime('%Y-%m-%d %H:%M:%S'), 'Doppler_noise', doppler])
@@ -3574,7 +3584,7 @@ class PrideDopplerCharacterization:
         ########################################################################################################################################
         ########################################################################################################################################
 
-        def get_doppler_noise_statistics(self, extracted_data_list, mission_name, save_dir=None, suppress=False, remove_outliers = False):
+        def get_doppler_noise_statistics(self, extracted_data_list, mission_name, save_dir=None, suppress=False):
             """
             Plots histograms of Doppler noise for each station, grouped by date.
 
@@ -3616,22 +3626,10 @@ class PrideDopplerCharacterization:
                     doppler_noise_hz = np.array(extracted_data['doppler_noise_hz'])
 
                     for date in unique_dates_list:
-                        if remove_outliers:
-                            lower_percentile = np.percentile(doppler_noise_hz, 5)
-                            upper_percentile = np.percentile(doppler_noise_hz, 95)
-                            outlier_mask = (doppler_noise_hz >= lower_percentile) & (doppler_noise_hz <= upper_percentile)
-                            utc_datetime = utc_datetime[outlier_mask]
-                            doppler_noise_hz = doppler_noise_hz[outlier_mask]
-
-                            date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
-
-                        else:
-                            date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
+                        date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
 
                         if np.any(date_data_mask):  # Only plot if there is data for this date
                             doppler_noise_filtered = doppler_noise_hz[date_data_mask]  # Apply mask
-
-
 
                             mean_doppler_noise = np.mean(doppler_noise_filtered)
                             rms_doppler_noise = np.sqrt(np.mean(doppler_noise_filtered**2))
@@ -3662,7 +3660,7 @@ class PrideDopplerCharacterization:
                 if not suppress:
                     plt.show()
 
-        def get_snr_statistics(self, extracted_data_list, mission_name, save_dir=None, suppress=False, remove_outliers = False):
+        def get_snr_statistics(self, extracted_data_list, mission_name, save_dir=None, suppress=False):
             """
             Plots histograms of SNR for each station, grouped by date.
 
@@ -3703,21 +3701,8 @@ class PrideDopplerCharacterization:
                     utc_datetime = extracted_data['utc_datetime']
                     snr = np.array(extracted_data['signal_to_noise'])
 
-                    if remove_outliers:
-                        lower_percentile = np.percentile(np.array(snr), 5)  # 5th percentile
-                        upper_percentile = np.percentile(np.array(snr), 95)  # 95th percentile
-                        # Filter outliers
-                        snr_mask = (snr >= lower_percentile) & (snr <= upper_percentile)
-                        filtered_utc_datetime_snr = np.array(utc_datetime)[snr_mask]
-                        filtered_snr = np.array(snr)[snr_mask]
-                        snr = filtered_snr
-
-                        for date in unique_dates_list:
-                            date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in filtered_utc_datetime_snr])
-
-                    else:
-                        for date in unique_dates_list:
-                            date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
+                    for date in unique_dates_list:
+                        date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
 
                     if np.any(date_data_mask):  # Only plot if there is data for this date
                         snr_filtered = snr[date_data_mask]  # Apply mask
@@ -3741,7 +3726,7 @@ class PrideDopplerCharacterization:
                     plt.show()
 
 
-        def plot_doppler_noise_distribution(self, extracted_data_list, mission_name, save_dir=None, suppress=True, remove_outliers = True):
+        def plot_doppler_noise_distribution(self, extracted_data_list, mission_name, save_dir=None, suppress=True):
             """
             Plots the Doppler noise distribution for all stations in a single histogram using sns.displot.
             Adjusts for stations with very bad noise.
@@ -3763,15 +3748,6 @@ class PrideDopplerCharacterization:
                 #if station_name == 'Wz':
                 #    continue
                 doppler_noise_hz = extracted_data['doppler_noise_hz']
-
-                if remove_outliers:
-                    # Filtering Outliers
-                    lower_percentile = np.percentile(np.array(doppler_noise_hz), 5)  # 5th percentile
-                    upper_percentile = np.percentile(np.array(doppler_noise_hz), 95)  # 95th percentile
-                    # Filter outliers
-                    mask = (doppler_noise_hz >= lower_percentile) & (doppler_noise_hz <= upper_percentile)
-                    doppler_noise_hz = np.array(doppler_noise_hz)[mask]
-
                 # Store each value with its corresponding station
                 for value in doppler_noise_hz:
                     data_list.append({'Doppler Noise (Hz)': value, 'Station': station_name})
@@ -3923,7 +3899,7 @@ class PrideDopplerCharacterization:
             if not suppress:
                 plt.show()
 
-        def get_all_stations_statistics(self, fdets_folder_path,  mission_name, extracted_parameters_list = None, doppler_noise_statistics = False, snr_statistics = False, remove_outliers = False, suppress = True, save_dir = None):
+        def get_all_stations_statistics(self, fdets_folder_path,  mission_name, extracted_parameters_list = None, doppler_noise_statistics = False, snr_statistics = False, suppress = True, save_dir = None):
 
 
             """
@@ -3971,10 +3947,7 @@ class PrideDopplerCharacterization:
 
                         print(f'Extracting data from {file}')
 
-                        extracted_parameters = self.ProcessFdets.extract_parameters(
-                            file_path,
-                            remove_outliers = True
-                        )
+                        extracted_parameters = self.ProcessFdets.extract_parameters(file_path)
 
                         extracted_parameters_list.append(extracted_parameters)
 
@@ -3989,8 +3962,7 @@ class PrideDopplerCharacterization:
                     extracted_parameters_list,
                     mission_name = mission_name,
                     save_dir = save_dir,
-                    suppress = suppress,
-                    remove_outliers= remove_outliers)
+                    suppress = suppress)
 
             if snr_statistics:
 
@@ -4010,9 +3982,7 @@ class PrideDopplerCharacterization:
                     extracted_parameters_list,
                     mission_name = mission_name,
                     save_dir = save_dir,
-                    suppress = suppress,
-                    remove_outliers= remove_outliers
-                )
+                    suppress = suppress)
 
         def get_elevation_plot(self, files_list, target, station_ids, mission_name, suppress=False, save_dir=None):
             """
@@ -4031,7 +4001,8 @@ class PrideDopplerCharacterization:
             station_names = [self.Utilities.ID_to_site(site_ID) for site_ID in station_ids if site_ID is not None]
             geodetic_states = [self.Utilities.site_to_geodetic_position(station_name) for station_name in station_names]
             fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
-
+            print(station_names)
+            print(geodetic_states)
             plt.figure(figsize=(13, 10))  # Initialize the plot
             station_plots = []  # List to store station names for saving plot filenames
 
@@ -4043,6 +4014,7 @@ class PrideDopplerCharacterization:
                     continue
 
                 receiving_station_name = match.group(1)
+                print(receiving_station_name)
 
                 times = []
                 times_strings = []
@@ -4149,12 +4121,12 @@ class PrideDopplerCharacterization:
                 next(reader)  # Skip header
 
                 for row in reader:
-                    parameter = (row[1].strip())
+                    date = datetime.strptime(row[0].strip(), "%Y-%m-%d %H:%M:%S")
+                    parameter = row[1].strip()
                     value = float(row[2])
-                    data[parameter].append(value)
+                    data[parameter].append((date, value))  # Store (datetime, value) tuple
 
             return data
-
         def get_mean_elevation_from_file(self, filename):
             elevations = []  # List to store elevation values
 
