@@ -18,6 +18,8 @@ The workflow includes:
 Requirements:
     - The data files where the FOMs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
 """
+from pyparsing import countedArray
+
 # %%
 from pride_characterization_library import PrideDopplerCharacterization
 import os
@@ -26,8 +28,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 from scipy.stats import norm
-
-
+import pandas as pd
+from matplotlib.ticker import MaxNLocator
+import copy
+import matplotlib.dates as mdates
 # %%
 def generate_random_color():
     """Generates a random, well-spaced color in hexadecimal format."""
@@ -49,11 +53,13 @@ experiments_to_analyze = {
     'mro': ['ec064'],
     'vex': ['vex_140106','vex_140109','vex_140110','vex_140113','vex_140118','vex_140119','vex_140120','vex_140123','vex_140126','vex_140127', 'vex_140131']
 }
-
+# Select the experiment(s) for which data analysis will be performed
+experiments_to_analyze = {
+    'juice': ['ec094b']}
 
 plot_gaussian_flag = False
-compare_filters_flag = False
-bad_obs_flag = False # if set to true, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
+compare_filters_flag = True
+bad_obs_flag = True # if set to true, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
 
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
@@ -63,9 +69,9 @@ color_dict = defaultdict(list)
 # Loop through missions and experiments
 for mission_name, experiment_names in experiments_to_analyze.items():
     if mission_name == 'mro':
-        bad_observations_mean_doppler_filter = 0.03 #Hz = 30 mHz
+        bad_observations_mean_doppler_filter = 0.005 #Hz = 5 mHz
     else:
-        bad_observations_mean_doppler_filter = 0.001 #Hz = 5 mHz
+        bad_observations_mean_doppler_filter = 0.005 #Hz = 5 mHz
 
     for experiment_name in experiment_names:
         # Assign color (fixed red for 'vex', random otherwise)
@@ -120,10 +126,13 @@ for mission_name, experiment_names in experiments_to_analyze.items():
                 parameters_dictionary = analysis.read_user_defined_parameters_file(os.path.join(user_defined_parameters_dir, file))
                 dates_and_snr = np.array(parameters_dictionary['SNR'])
                 dates_and_doppler_noise = np.array(parameters_dictionary['Doppler_noise'])
+                dates_and_fdets = np.array(parameters_dictionary['Freq_Detection'])
                 dates, doppler_noise_list = zip(*dates_and_doppler_noise)
                 _, snr_list = zip(*dates_and_snr)
+                _, fdets_list = zip(*dates_and_fdets)
                 snr_array = np.array(snr_list)
                 doppler_noise_array = np.array(doppler_noise_list)
+                fdets_array = np.array(fdets_list)
                 median_doppler_noise = np.median(doppler_noise_array)
                 mean_doppler_noise = np.mean(doppler_noise_array)
                 median = np.median(doppler_noise_array)
@@ -133,20 +142,6 @@ for mission_name, experiment_names in experiments_to_analyze.items():
                 z_score_filter = np.abs(modified_z) < threshold
                 filter_indexes = np.where(z_score_filter)[0]
                 filtered_dates = np.array(dates)[filter_indexes]
-
-                # Gaussian
-                if plot_gaussian_flag:
-                    # Fit Gaussian
-                    mu, std = norm.fit(doppler_noise_array)
-                    fig, ax = plt.subplots(1, 1, figsize=(10, 5), sharex=True)
-                    ax.hist(doppler_noise_array, bins=30, density=True, alpha=0.6)
-                    xmin, xmax = ax.get_xlim()  # Get the range from the histogram plot
-                    x = np.linspace(xmin, xmax, 100)  # Create 100 evenly spaced points between
-                    p = norm.pdf(x, mu, std)
-                    ax.plot(x, p, 'k', linewidth=2, label=f'Gaussian fit: μ={mu:.3f}, σ={std:.3f}')
-                    plt.title('Gaussian Fit of Doppler Noise')
-                    ax.legend()
-                    plt.show()
 
                 # Apply median filtering
                 filtered_snr = snr_array[z_score_filter]
@@ -161,25 +156,63 @@ for mission_name, experiment_names in experiments_to_analyze.items():
                     median_retained = len(filtered_dates)*100/len(dates)
                     mean_retained = len(mean_filtered_dates)*100/len(dates)
 
-                    print(f'{station_code},Median Retained %: {median_retained}')
-                    print(f'{station_code},mean Retained %: {mean_retained}')
-                    # Plot difference between mean filter and z-score filter
-                    plt.plot(dates, doppler_noise_array, label='Original', marker='+', linestyle='-',
-                             color='blue', markersize=5, linewidth=0.5)
-                    plt.plot(mean_filtered_dates, mean_filtered_doppler_noise, label=f'Window-Filtered, Retained: {mean_retained}', marker='+', linestyle='-',
-                             color='red', markersize =5, linewidth=0.5)
-                    plt.plot(filtered_dates, filtered_doppler_noise, label=f'Modified Z-Score, Retained: {median_retained}', marker='+', linestyle='-',
-                             color='orange', markersize =5, linewidth=0.5)
+                        # Gaussian
+                    if plot_gaussian_flag:
+                        # Fit Gaussian
+                        mu, std = norm.fit(filtered_doppler_noise*1000)
+                        fig, ax = plt.subplots(1, 1, figsize=(10, 5), sharex=True)
+                        ax.hist(filtered_doppler_noise*1000, bins=60, density=True, alpha=0.6)
+                        xmin, xmax = ax.get_xlim()  # Get the range from the histogram plot
+                        x = np.linspace(xmin, xmax, 100)  # Create 100 evenly spaced points between
+                        p = norm.pdf(x, mu, std)
+                        ax.plot(x, p, 'r', linewidth=2, label=f'Gaussian fit: μ={mu:.3f}, σ={std:.3f}', linestyle = '--')
+                        plt.title(f'{mission_name.upper()} - Gaussian Fit of Doppler Noise |  Station: {station_code}')
+                        plt.xlabel('Doppler Noise [mHz]')
+                        plt.ylabel('Counts')
+                        ax.legend()
+                        plt.show()
 
-                    plt.title(f'Doppler Noise for {mission_name}, Station: {station_code}')
-                    plt.legend()
+                    hours_only = [dt.strftime('%H:%M') for dt in dates]
+                    filtered_hours_only = [dt.strftime('%H:%M:%S') for dt in filtered_dates]
+                    day = dates[0].strftime('%Y-%m-%d')
+
+                    print(f'{station_code}, Median Retained %: {median_retained}')
+                    print(f'{station_code}, Mean Retained %: {mean_retained}')
+
+                    # Create two vertically stacked subplots
+                    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+
+                    # --- Top Plot: SNR ---
+                    ax1.plot(dates, snr_array, label='SNR', marker='x', linestyle='-', color='blue',
+                             markersize=5, linewidth=0.5, alpha = 0.7)
+                    ax1.set_title(f'{mission_name.upper()} — SNR and Doppler Noise | Station: {station_code}')
+                    ax1.set_ylabel('SNR')
+                    ax1.grid(True)
+                    ax1.legend()
+
+                    # --- Bottom Plot: Doppler Noise ---
+                    ax2.plot(dates, doppler_noise_array*1000, label='Original Noise', marker='o', linestyle='-',
+                             color='blue', markersize=3, linewidth=0.5, alpha = 0.7)
+                    ax2.plot(filtered_dates, filtered_doppler_noise*1000,
+                             label=f'Filtered Noise, Retained: {median_retained:.2f}',
+                             marker='x', linestyle='-', color='orange', markersize=5, linewidth=0.5, alpha = 0.5)
+                    ax2.set_xlabel(f'UTC Time (HH:MM) on {day}')
+                    ax2.set_ylabel('Doppler Noise [mHz]')
+                    ax2.grid(True)
+                    ax2.legend()
+
+                    # Improve x-axis labels
+                    ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+                    locator=MaxNLocator(prune='both', nbins=20)
+                    ax2.xaxis.set_major_locator(locator)
+                    plt.tight_layout()
                     plt.show()
 
                 # Save mean and RMS values
                 mean_rms_user_defined_parameters[experiment_name].append({station_code:
                                                                               {'mean_snr': np.mean(filtered_snr),
                                                                                'rms_snr': np.std(filtered_snr),
-                                                                               'mean_doppler_noise': np.mean(filtered_doppler_noise),
+                                                                               'mean_doppler_noise': np.abs(np.mean(filtered_doppler_noise)),
                                                                                'rms_doppler_noise': np.std(filtered_doppler_noise),
                                                                                }})
         # Analyze elevation files
@@ -207,6 +240,7 @@ ax1, ax3, ax4 = axes  # Assign subplots
 # Plotting results
 count = 0
 count_bad = 0
+scans_to_remove = defaultdict(list)
 for experiment_name in mean_rms_user_defined_parameters.keys():
     for station_dict in mean_rms_user_defined_parameters[experiment_name]:
         for station in station_dict.keys():
@@ -223,14 +257,15 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
             color = color_dict[experiment_name]
             count+=1
             if experiment_name == 'ec064':
-                bad_observations_mean_doppler_filter = 0.03 #Hz = 30 mHz
+                bad_observations_mean_doppler_filter = 0.005 #Hz = 5 mHz
             else:
-                bad_observations_mean_doppler_filter = 0.001 #Hz = 5 mHz
+                bad_observations_mean_doppler_filter = 0.005 #Hz = 5 mHz
             # only keep good observations
             if np.abs(mean_doppler) > bad_observations_mean_doppler_filter*1000: # in mHz:
                 if bad_obs_flag:
                     count_bad +=1
-                    print(f'Bad Observation: {station}, {experiment_name}')
+                    print(f'Bad Observation: {station}, {experiment_name},{np.abs(mean_doppler)} ')
+                    scans_to_remove[experiment_name].append(station)
                     ax1.errorbar(station, mean_snr, fmt='x', markersize=6, alpha=0.7, color='red')
                     ax1.errorbar(station, mean_snr, fmt='o', linewidth=2, markersize=6, alpha=0.5,
                                  color=color, label=label)
@@ -283,6 +318,7 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
                 ax4.annotate(station, (mean_elevation, mean_snr), fontsize=10, alpha=0.7)
 
 bad_observations_percentage = (count_bad/count)*100
+print(count, count_bad)
 print(f"Percentage of Bad Scans: {bad_observations_percentage} %")
 
 # Final plot adjustments
@@ -322,6 +358,31 @@ mission_aggregates = defaultdict(lambda: {
     'mean_doppler_noise': [],
     'rms_doppler_noise': []
 })
+
+original_data_dict = copy.deepcopy(mean_rms_user_defined_parameters)
+
+for exp_name, stations_to_remove in scans_to_remove.items():
+    if exp_name in mean_rms_user_defined_parameters:
+        # Filter out the unwanted stations from the list
+        mean_rms_user_defined_parameters[exp_name] = [
+            station_data for station_data in mean_rms_user_defined_parameters[exp_name]
+            if list(station_data.keys())[0] not in stations_to_remove
+        ]
+        # Remove experiments left with no stations
+        mean_rms_user_defined_parameters = {k: v for k, v in mean_rms_user_defined_parameters.items() if v}
+
+print("=== Removed Stations ===")
+for exp_name, original_entries in original_data_dict.items():
+    filtered_entries = mean_rms_user_defined_parameters.get(exp_name, [])
+    # Get sets of station names
+    original_stations = {list(entry.keys())[0] for entry in original_entries}
+    filtered_stations = {list(entry.keys())[0] for entry in filtered_entries}
+
+    removed_stations = original_stations - filtered_stations
+    if removed_stations:
+        print(f"Experiment: {exp_name}")
+        for station in removed_stations:
+            print(f"  Removed Station: {station}")
 
 for experiment_name in mean_rms_user_defined_parameters.keys():
     mission_name = utilities.get_mission_from_experiment(experiment_name)

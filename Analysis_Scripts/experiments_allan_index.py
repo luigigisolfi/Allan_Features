@@ -15,12 +15,17 @@ experiments_to_analyze = {
     'vex': ['vex_140106','vex_140109','vex_140110','vex_140113','vex_140118','vex_140119','vex_140120','vex_140123','vex_140126','vex_140127', 'vex_140131']
 }
 
+
+#experiments_to_analyze = {
+#    'juice': ["ec094a"]}
+
 # %%
 for mission_name, experiment_names in experiments_to_analyze.items():
         for experiment_name in experiment_names:
             fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/{experiment_name}/input/complete' #or insert your path
 
             if mission_name == 'vex':
+                fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/usable/converted_old_format_files/vex_1401/{experiment_name}/input/complete' #or insert your path
                 output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/usable/converted_old_format_files/vex_1401/{experiment_name}/output/' #or insert your path
             else:
                 output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/{experiment_name}/output/' #or insert your path
@@ -30,7 +35,7 @@ for mission_name, experiment_names in experiments_to_analyze.items():
             save_dir = output_dir
             suppress = False
 
-            analysis.get_all_stations_oadev_plot(fdets_folder_path, mission_name, experiment_name, tau_min = tau_min, tau_max = tau_max, z_score_filter = True,save_dir = output_dir)
+            analysis.get_all_stations_oadev_plot(fdets_folder_path, mission_name, experiment_name, tau_min = tau_min, tau_max = tau_max, two_step_filter = True,save_dir = output_dir)
 
 
 #experiments_to_analyze = {'juice': ['juice_231019']}

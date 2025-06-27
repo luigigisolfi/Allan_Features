@@ -282,6 +282,7 @@ class PrideDopplerCharacterization:
                 return None
 
             self.receiving_station_name = match.group(1)
+            print(self.receiving_station_name)
             self.observation_date = self.get_observation_date(filename)
             self.base_frequency = self.get_base_frequency(filename)
 
@@ -2884,50 +2885,52 @@ class PrideDopplerCharacterization:
         ########################################################################################################################################
         ########################################################################################################################################
 
-
-        def z_score_filter(self, extracted_parameters_list, keys=('signal_to_noise', 'doppler_noise_hz'), threshold=3.5):
-
-
+        def two_step_filter(self, extracted_parameters_list, keys=('signal_to_noise', 'doppler_noise_hz'), threshold=3.5):
             if len(extracted_parameters_list) == 0:
                 return extracted_parameters_list
 
-            # Step 1: Compute global filter masks based on keys
-            print([entry for entry in extracted_parameters_list])
-            keep_masks = [np.ones(len(entry[keys[0]]), dtype=bool) for entry in extracted_parameters_list]
+            filtered_list = []
 
-            for key in keys:
-                all_values = []
-                index_map = []
+            for entry in extracted_parameters_list:
+                keep_mask = None
 
-                for i, entry in enumerate(extracted_parameters_list):
-                    values = entry.get(key, [])
-                    for j, val in enumerate(values):
-                        all_values.append(val)
-                        index_map.append((i, j))
+                for key in keys:
+                    values = np.array(entry.get(key, []))
 
-                all_values = np.array(all_values)
-                median = np.median(all_values)
-                mad = np.median(np.abs(all_values - median))
+                    if len(values) == 0:
+                        continue
 
-                if mad == 0:
-                    continue
+                    median = np.median(values)
+                    mad = np.median(np.abs(values - median))
 
-                modified_z = 0.6745 * (all_values - median) / mad
-                mask = np.abs(modified_z) < threshold
+                    if mad == 0:
+                        mask = np.ones_like(values, dtype=bool)
+                    else:
+                        modified_z = 0.6745 * (values - median) / mad
+                        mask = np.abs(modified_z) < threshold
 
-                for keep, (i, j) in zip(mask, index_map):
-                    if not keep:
-                        keep_masks[i][j] = False
+                    if keep_mask is None:
+                        keep_mask = mask
+                    else:
+                        keep_mask &= mask  # logical AND for all keys
 
-            # Step 2: Apply the consistent keep_masks to all keys
-            for i, entry in enumerate(extracted_parameters_list):
-                mask = keep_masks[i]
+                # Apply filtering
                 for key in entry:
                     values = entry[key]
-                    if isinstance(values, list) and len(values) == len(mask):
-                        entry[key] = [v for v, k in zip(values, mask) if k]
+                    if isinstance(values, list) and len(values) == len(keep_mask):
+                        entry[key] = [v for v, k in zip(values, keep_mask) if k]
 
-            return extracted_parameters_list
+                # Step 2: Reject station if mean doppler noise > 0.005 Hz after filtering
+                doppler_noise = entry.get("doppler_noise_hz", [])
+                if doppler_noise and np.abs(np.mean(doppler_noise)) < 0.005:
+                    filtered_list.append(entry)
+                else:
+                    print('Bad observation detected. It will not enter allan deviation plot')
+                    filtered_list.append(entry)
+
+            return filtered_list
+
+
         def plot_oadev_stations(self, extracted_data_list, mission_name, experiment_name = None, tau_min=None, tau_max=None, save_dir=None, suppress=False, color_regions=False):
             """
             Plots Overlapping Allan Deviation (oadev) and saves one plot per unique date and corresponding data to CSV files.
@@ -2965,6 +2968,8 @@ class PrideDopplerCharacterization:
                 for i, extracted_data in enumerate(extracted_data_list):
                     color = colors(i)
                     receiving_station_name = extracted_data['receiving_station_name']
+                    if receiving_station_name == 'O6':
+                        receiving_station_name == 'On'
                     utc_datetime = extracted_data['utc_datetime']
                     doppler_noise_hz = extracted_data['doppler_noise_hz']
                     frequency_detection = extracted_data['frequency_detection']
@@ -2974,7 +2979,6 @@ class PrideDopplerCharacterization:
                     t_jd = np.array([Time(time).jd for time in utc_datetime])
                     diffs = np.diff(t_jd)
                     most_common_diff = Counter(diffs).most_common(1)
-
                     if not most_common_diff or most_common_diff[0][0] == 0:
                         print(f"Skipping dataset {i+1}: Cannot determine sampling rate.")
                         continue
@@ -3005,9 +3009,9 @@ class PrideDopplerCharacterization:
                     errors = np.array(errors)[tau_mask]
 
                     # Only use data from this date
-                    date_data_mask = [d.strftime('%Y-%m-%d') == date for d in utc_datetime]
-                    if not any(date_data_mask):
-                        continue
+                    #date_data_mask = [d.strftime('%Y-%m-%d') == date for d in utc_datetime]
+                    #if not any(date_data_mask):
+                    #    continue
 
                     # Plot
                     ax.errorbar(taus, oadev, yerr=errors, fmt='o', markersize=3, linestyle='dashed',
@@ -3057,7 +3061,7 @@ class PrideDopplerCharacterization:
                         writer.writerows(output_rows)
 
 
-        def get_all_stations_oadev_plot(self, fdets_folder_path, mission_name, experiment_name = None, extracted_parameters_list = None, tau_min = None, tau_max = None, z_score_filter = True, save_dir = None):
+        def get_all_stations_oadev_plot(self, fdets_folder_path, mission_name, experiment_name = None, extracted_parameters_list = None, tau_min = None, tau_max = None, two_step_filter = True, save_dir = None):
 
             if not extracted_parameters_list:
                 extracted_parameters_list =list()
@@ -3069,8 +3073,8 @@ class PrideDopplerCharacterization:
                         extracted_parameters = self.ProcessFdets.extract_parameters(file_path)
                         extracted_parameters_list.append(extracted_parameters)
 
-            if z_score_filter:
-                extracted_parameters_list = self.z_score_filter(extracted_parameters_list)
+            if two_step_filter:
+                extracted_parameters_list = self.two_step_filter(extracted_parameters_list)
 
             if experiment_name:
                 self.plot_oadev_stations(

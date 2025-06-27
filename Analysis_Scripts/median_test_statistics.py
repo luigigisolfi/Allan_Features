@@ -25,6 +25,7 @@ import numpy as np
 import random
 import re
 from scipy.stats import norm
+from matplotlib.ticker import MaxNLocator
 
 # %%
 def generate_random_color():
@@ -43,7 +44,7 @@ analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 missions_to_analyse = ['mex']
 
 plot_gaussian_flag = False
-compare_filters_flag = False
+compare_filters_flag = True
 bad_obs_flag = False # if set to true, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
 
 # Create empty dictionaries to be filled with meaningful values
@@ -163,18 +164,39 @@ for mission_name in missions_to_analyse:
                         median_retained = len(filtered_dates)*100/len(dates)
                         mean_retained = len(mean_filtered_dates)*100/len(dates)
 
+                        hours_only = [dt.strftime('%H:%M') for dt in dates]
+                        filtered_hours_only = [dt.strftime('%H:%M') for dt in filtered_dates]
+                        day = dates[0].strftime('%A, %Y-%m-%d')
+
                         print(f'{station_code},Median Retained %: {median_retained}')
                         print(f'{station_code},mean Retained %: {mean_retained}')
                         # Plot difference between mean filter and z-score filter
-                        plt.plot(dates, doppler_noise_array, label='Original', marker='+', linestyle='-',
-                                    color='blue', markersize=5, linewidth=0.5)
-                        plt.plot(mean_filtered_dates, mean_filtered_doppler_noise, label=f'Window-Filtered, Retained: {mean_retained}', marker='+', linestyle='-',
-                                 color='red', markersize =5, linewidth=0.5)
-                        plt.plot(filtered_dates, filtered_doppler_noise, label=f'Modified Z-Score, Retained: {median_retained}', marker='+', linestyle='-',
-                                    color='orange', markersize =5, linewidth=0.5)
+                        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
 
-                        plt.title(f'Doppler Noise for {mission_name}, Station: {station_code}')
-                        plt.legend()
+                        # --- Top Plot: SNR ---
+                        ax1.plot(hours_only, snr_array, label='SNR', marker='x', linestyle='-', color='blue',
+                                 markersize=5, linewidth=0.5, alpha = 0.7)
+                        ax1.set_title(f'{mission_name.upper()} — SNR and Doppler Noise | Station: {station_code}')
+                        ax1.set_ylabel('SNR')
+                        ax1.grid(True)
+                        ax1.legend()
+
+                        # --- Bottom Plot: Doppler Noise ---
+                        ax2.plot(hours_only, doppler_noise_array*1000, label='Original Noise', marker='o', linestyle='-',
+                                 color='blue', markersize=3, linewidth=0.5, alpha = 0.7)
+                        ax2.plot(filtered_hours_only, filtered_doppler_noise*1000,
+                                 label=f'Filtered Noise, Retained: {median_retained:.2f}',
+                                 marker='x', linestyle='-', color='orange', markersize=5, linewidth=0.5, alpha = 0.5)
+                        ax2.set_xlabel(f'UTC Time (HH:MM) on {day}')
+                        ax2.set_ylabel('Doppler Noise [mHz]')
+                        ax2.grid(True)
+                        ax2.legend()
+
+                        # Improve x-axis labels
+                        ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+                        locator=MaxNLocator(prune='both', nbins=20)
+                        ax2.xaxis.set_major_locator(locator)
+                        plt.tight_layout()
                         plt.show()
 
                     # Save mean and RMS values

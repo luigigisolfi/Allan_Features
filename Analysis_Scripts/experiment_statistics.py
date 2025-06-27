@@ -41,6 +41,10 @@ experiments_to_analyze = {
     'vex': ['vex_140106','vex_140109','vex_140110','vex_140113','vex_140118','vex_140119','vex_140120','vex_140123','vex_140126','vex_140127', 'vex_140131']
 }
 
+#experiments_to_analyze = {
+#    'mex': ['gr035']}
+
+
 # Division by experiments
 for mission_name, experiment_names in experiments_to_analyze.items():
     for experiment_name in experiment_names:
