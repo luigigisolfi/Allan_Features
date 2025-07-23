@@ -459,7 +459,6 @@ for exp_name, stations_to_remove in scans_to_remove.items():
         # Remove experiments left with no stations
         mean_rms_user_defined_parameters = {k: v for k, v in mean_rms_user_defined_parameters.items() if v}
 
-print("=== Removed Stations ===")
 for exp_name, original_entries in original_data_dict.items():
     filtered_entries = mean_rms_user_defined_parameters.get(exp_name, [])
     # Get sets of station names
@@ -468,6 +467,7 @@ for exp_name, original_entries in original_data_dict.items():
 
     removed_stations = original_stations - filtered_stations
     if removed_stations:
+        print("=== Removed Stations ===")
         print(f"Experiment: {exp_name}")
         for station in removed_stations:
             print(f"  Removed Station: {station}")
