@@ -3083,7 +3083,7 @@ class PrideDopplerCharacterization:
                 ax.set_yscale("log")
                 ax.set_xlabel('Averaging Time (s)')
                 ax.set_ylabel('Overlapping Allan Deviation')
-                if experiment_name:
+                if experiment_name in self.Utilities.experiments:
                     ax.set_title(f'Mission {mission_name} on {date}, experiment {experiment_name}')
                 else:
                     ax.set_title(f'Mission {mission_name} on {date}')

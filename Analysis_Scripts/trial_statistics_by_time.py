@@ -30,8 +30,8 @@ plot_gaussian_flag = False
 compare_filters_flag = False
 bad_obs_flag = True # if set to true, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
 
-start_date = datetime.datetime(2013, 1, 1, tzinfo=timezone.utc)
-end_date =  datetime.datetime(2013, 12, 31, tzinfo=timezone.utc)
+start_date = datetime.datetime(2013, 12, 1, tzinfo=timezone.utc)
+end_date =  datetime.datetime(2013, 12, 29, tzinfo=timezone.utc)
 yymm_folders_to_consider = utilities.list_yymm(start_date, end_date)
 
 months_list = list(yymm_folders_to_consider.keys())
@@ -39,12 +39,11 @@ days_list = [item for sublist in yymm_folders_to_consider.values() for item in s
 
 root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/'
 experiments_to_analyze = defaultdict(list)
-missions_to_analyse = ['mex']
+missions_to_analyse = ['vex']
 yymmdd_folders_per_mission = defaultdict(list)
 
 for mission_name in missions_to_analyse:
     mission_root = os.path.join(root_dir, mission_name)
-
     if not os.path.exists(mission_root):
         print(f"⚠️  Warning: Mission root path '{mission_root}' does not exist.")
         continue
@@ -66,91 +65,6 @@ for mission_name in missions_to_analyse:
             yymmdd_folders_per_mission[mission_name].append(yymmdd)
 
 experiments_to_analyze = yymmdd_folders_per_mission
-
-from pride_characterization_library import PrideDopplerCharacterization
-import os
-from collections import defaultdict
-import matplotlib.pyplot as plt
-import copy
-import numpy as np
-from scipy.stats import norm
-import random
-import re
-import matplotlib.dates as mdates
-from datetime import datetime, timezone
-from matplotlib.ticker import MaxNLocator
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
-import datetime
-
-# %%
-def generate_random_color():
-    """Generates a random, well-spaced color in hexadecimal format."""
-    r = random.randint(0, 220)  # Avoid extremes (too dark/light)
-    g = random.randint(0, 220)
-    b = random.randint(0, 220)
-    return "#{:02x}{:02x}{:02x}".format(r, g, b)
-# %%
-pride = PrideDopplerCharacterization() # create PRIDE Object
-process_fdets = pride.ProcessFdets() # create Process Fdets Object
-utilities = pride.Utilities() # create Utilities Object
-analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
-
-plot_gaussian_flag = False
-compare_filters_flag = False
-bad_obs_flag = True # if set to true, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
-
-start_date = datetime.datetime(2013, 1, 1, tzinfo=timezone.utc)
-end_date =  datetime.datetime(2025, 12, 31, tzinfo=timezone.utc)
-yymm_folders_to_consider = utilities.list_yymm(start_date, end_date)
-
-months_list = list(yymm_folders_to_consider.keys())
-days_list = [item for sublist in yymm_folders_to_consider.values() for item in sublist]
-
-root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/'
-experiments_to_analyze = defaultdict(list)
-missions_to_analyse = ['juice']
-yymmdd_folders_per_mission = defaultdict(list)
-
-for mission_name in missions_to_analyse:
-    mission_root = os.path.join(root_dir, mission_name)
-
-    if not os.path.exists(mission_root):
-        print(f"⚠️  Warning: Mission root path '{mission_root}' does not exist.")
-        continue
-
-    for yymm_folder in months_list:
-        month_folder_name = f"{mission_name}_{yymm_folder}"
-        month_folder_path = os.path.join(mission_root, month_folder_name)
-
-        if not os.path.exists(month_folder_path):
-            continue  # <-- continue to next yymm_folder
-
-        for yymmdd in days_list:
-            day_folder_name = f"{mission_name}_{yymmdd}"
-            day_folder_path = os.path.join(month_folder_path, day_folder_name)
-
-            if not os.path.exists(day_folder_path):
-                continue  # <-- continue to next yymmdd_folder
-
-            yymmdd_folders_per_mission[mission_name].append(yymmdd)
-
-experiments_to_analyze = yymmdd_folders_per_mission
-
-# Produce Allan Index Plot
-#for mission_name, yymmdds in yymmdd_folders_per_mission.items():
-#   yymmdd_folders = [mission_name + '_' + yymmdd for yymmdd in yymmdds]
-#    yymm_folders = [mission_name + '_' + yymmdd[:4] for yymmdd in yymmdds]
-#    experiment_names = [utilities.find_experiment_from_yymmdd(yymmdd) for yymmdd in yymmdds]
-#    for yymm_folder, yymmdd_folder, experiment_name in zip(yymm_folders, yymmdd_folders, experiment_names):
-#        fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/input/complete' #or insert your path
-#       output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/output/' #or insert your path
-#        tau_min = 0
-#       tau_max = 100
-#        save_dir = output_dir
-#        suppress = False
-#        analysis.get_all_stations_oadev_plot(fdets_folder_path, mission_name, experiment_name, tau_min = tau_min, tau_max = tau_max, two_step_filter = True, save_dir = output_dir)
-#
-#exit()
 
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
@@ -163,10 +77,12 @@ for mission_name, yymmdds in yymmdd_folders_per_mission.items():
     yymmdd_folders = [mission_name + '_' + yymmdd for yymmdd in yymmdds]
     yymm_folders = [mission_name + '_' + yymmdd[:4] for yymmdd in yymmdds]
     experiment_names = [utilities.find_experiment_from_yymmdd(yymmdd) for yymmdd in yymmdds]
+
     for yymm_folder, yymmdd_folder, experiment_name in zip(yymm_folders, yymmdd_folders, experiment_names):
         fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/input/complete' #or insert your path
         output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/output/' #or insert your path
 
+        # Produce Allan Deviations plot
         tau_min = 0
         tau_max = 100
         save_dir = output_dir
