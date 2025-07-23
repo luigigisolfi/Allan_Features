@@ -12,10 +12,10 @@ from collections import Counter
 from astropy.time import Time
 import allantools
 from matplotlib import cm
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from dateutil.relativedelta import relativedelta
 import matplotlib.patches as mpatches
 import seaborn as sns
-import pandas as pd
 from PIL import Image
 from collections import defaultdict
 import pandas as pd
@@ -350,10 +350,10 @@ class PrideDopplerCharacterization:
             return {
                 'receiving_station_name': self.receiving_station_name,
                 'utc_datetime': self.utc_datetime,
-                'signal_to_noise': self.signal_to_noise,
-                'doppler_noise_hz': self.doppler_noise_hz,
+                'Signal-to-Noise': self.signal_to_noise,
+                'Doppler Noise [Hz]': self.doppler_noise_hz,
                 'base_frequency': self.base_frequency,
-                'frequency_detection': self.frequency_detection,
+                'Freq detection [Hz]': self.frequency_detection,
                 'first_col_name': self.first_col_name,
                 'second_col_name': self.second_col_name,
                 'fifth_col_name': self.fifth_col_name,
@@ -437,8 +437,8 @@ class PrideDopplerCharacterization:
                     "mission_name": "mex",
                     "vex_file_name": "gr035.vix",
                     "exper_description": "mars_express tracking test",
-                    "exper_nominal_start": "2020y053d01h30m00s",
-                    "exper_nominal_stop": "2020y053d03h00m00s"
+                    "exper_nominal_start": "2013y362d17h40m00s",
+                    "exper_nominal_stop": "2013y363d18h30m00s"
                 },
 
                 "m0303": {
@@ -801,6 +801,63 @@ class PrideDopplerCharacterization:
 
         ########################################################################################################################################
         ########################################################################################################################################
+
+        def parse_experiment_time(self, time_str):
+            """Convert time string like '2020y053d01h30m00s' to a timezone-aware UTC datetime object."""
+            match = re.match(r"(\d{4})y(\d{3})d(\d{2})h(\d{2})m(\d{2})s", time_str)
+            if not match:
+                raise ValueError(f"Invalid time format: {time_str}. (Accepted format example: 2020y053d01h30m00s)")
+            year, doy, hour, minute, second = map(int, match.groups())
+            datetime_value = datetime.strptime(f"{year} {doy}", "%Y %j")
+
+            return datetime_value.replace(tzinfo=timezone.utc)
+
+        def find_experiment_from_yymmdd(self, yymmdd_str):
+            """
+            Check if a yymmdd string falls into any experiment interval.
+            Return experiment name or ISO date string (YYYY-MM-DD).
+            """
+            try:
+                # Parse 'yymmddHHMM' to datetime (assumes 2000+)
+                datetime_value = datetime.strptime(yymmdd_str, "%y%m%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                raise ValueError(f"Invalid yymmddHHMM format: '{yymmdd_str}'. Expected format: 'yymmddHHMM' (e.g., '2407161305')")
+
+            for exp_name, exp_data in self.experiments.items():
+                start = self.parse_experiment_time(exp_data["exper_nominal_start"])
+                stop = self.parse_experiment_time(exp_data["exper_nominal_stop"])
+                if start <= datetime_value <= stop:
+                    return exp_name
+
+            return yymmdd_str
+
+
+
+
+        def datetime_to_yymmdd(self,datetime_value):
+            """Convert a datetime object to 'YYMMDD' format."""
+            if datetime_value.tzinfo is None:
+                datetime_value = datetime_value.replace(tzinfo=timezone.utc)
+            else:
+                datetime_value = datetime_value.astimezone(timezone.utc)
+
+            return datetime_value.strftime("%y%m%d")
+        def list_yymm(self, start_date, end_date):
+            """Return a dictionary {yymm: [list of yymmdd]} for each day between start_date and end_date inclusive."""
+            if start_date > end_date:
+                raise ValueError("Start date must be before end date.")
+
+            current = start_date
+            yymm_dict = {}
+
+            while current <= end_date:
+                yymmdd = self.datetime_to_yymmdd(current)  # e.g., '210222'
+                yymm = yymmdd[:4]  # extract 'yymm'
+                yymm_dict.setdefault(yymm, []).append(yymmdd)
+                current += timedelta(days=1)
+
+            return yymm_dict
+
         def mjd_to_utc(self,mjd):
             """
             Description
@@ -2568,7 +2625,6 @@ class PrideDopplerCharacterization:
                 if experiment == experiment_name:
                     mission_name = values['mission_name']
                     return mission_name
-
     ########################################################################################################################################
     ########################################################################################################################################
 
@@ -2620,14 +2676,14 @@ class PrideDopplerCharacterization:
             if extracted_data != None:
                 # Extract data
                 utc_datetime = extracted_data['utc_datetime']
-                signal_to_noise = extracted_data['signal_to_noise']
-                doppler_noise_hz = extracted_data['doppler_noise_hz']
+                signal_to_noise = extracted_data['Signal-to-Noise']
+                doppler_noise_hz = extracted_data['Doppler Noise [Hz]']
                 first_col_name = extracted_data['first_col_name']
                 second_col_name = extracted_data['second_col_name']
                 fifth_col_name = extracted_data['fifth_col_name']
                 utc_date = extracted_data['utc_date']
                 base_frequency = extracted_data['base_frequency']
-                frequency_detection = extracted_data['frequency_detection']
+                frequency_detection = extracted_data['Freq detection [Hz]']
 
                 # Number of x-ticks you want to display
                 num_ticks = 15
@@ -2885,7 +2941,7 @@ class PrideDopplerCharacterization:
         ########################################################################################################################################
         ########################################################################################################################################
 
-        def two_step_filter(self, extracted_parameters_list, keys=('signal_to_noise', 'doppler_noise_hz'), threshold=3.5):
+        def two_step_filter(self, extracted_parameters_list, keys=('Signal-to-Noise', 'Doppler Noise [Hz]'), threshold=3.5):
             if len(extracted_parameters_list) == 0:
                 return extracted_parameters_list
 
@@ -2921,13 +2977,15 @@ class PrideDopplerCharacterization:
                         entry[key] = [v for v, k in zip(values, keep_mask) if k]
 
                 # Step 2: Reject station if mean doppler noise > 0.005 Hz after filtering
-                doppler_noise = entry.get("doppler_noise_hz", [])
-                if doppler_noise and np.abs(np.mean(doppler_noise)) < 0.005:
-                    filtered_list.append(entry)
+                doppler_noise = entry.get("Doppler Noise [Hz]", [])
+                if doppler_noise:
+                    if  np.abs(np.mean(doppler_noise)) < 0.005:
+                        filtered_list.append(entry)
+                    else:
+                        print('Bad observation detected. It will not enter allan deviation plot')
+                        filtered_list.append(entry)
                 else:
-                    print('Bad observation detected. It will not enter allan deviation plot')
-                    filtered_list.append(entry)
-
+                    print('No doppler noise entry found. Maybe check the corresponding dictionary key name.')
             return filtered_list
 
 
@@ -2955,7 +3013,6 @@ class PrideDopplerCharacterization:
                 unique_dates_set.update(day.strftime('%Y-%m-%d') for day in utc_datetime)
 
             unique_dates_list = sorted(list(unique_dates_set))  # Chronological order
-
             colors = cm.get_cmap('tab10', len(extracted_data_list))  # Unique colors per station
 
             if save_dir and not os.path.exists(save_dir):
@@ -2964,15 +3021,15 @@ class PrideDopplerCharacterization:
             for date in unique_dates_list:
                 fig, ax = plt.subplots(figsize=(10, 5))
                 output_rows = []  # For CSV
-
+                print('date', date)
                 for i, extracted_data in enumerate(extracted_data_list):
                     color = colors(i)
                     receiving_station_name = extracted_data['receiving_station_name']
                     if receiving_station_name == 'O6':
                         receiving_station_name == 'On'
                     utc_datetime = extracted_data['utc_datetime']
-                    doppler_noise_hz = extracted_data['doppler_noise_hz']
-                    frequency_detection = extracted_data['frequency_detection']
+                    doppler_noise_hz = extracted_data['Doppler Noise [Hz]']
+                    frequency_detection = extracted_data['Freq detection [Hz]']
                     base_frequency = extracted_data['base_frequency']
 
                     # Determine sampling rate
@@ -3069,7 +3126,6 @@ class PrideDopplerCharacterization:
                 for file in os.listdir(directory_path):
                     if file.startswith('Fdets') and file.endswith('.txt'):
                         file_path = os.path.join(directory_path, file)
-
                         extracted_parameters = self.ProcessFdets.extract_parameters(file_path)
                         extracted_parameters_list.append(extracted_parameters)
 
@@ -3077,6 +3133,7 @@ class PrideDopplerCharacterization:
                 extracted_parameters_list = self.two_step_filter(extracted_parameters_list)
 
             if experiment_name:
+                print('experiment_name')
                 self.plot_oadev_stations(
                     extracted_parameters_list,
                     mission_name = mission_name,
@@ -3245,14 +3302,14 @@ class PrideDopplerCharacterization:
 
                 # Extract data
                 utc_datetime = extracted_data['utc_datetime']
-                signal_to_noise = extracted_data['signal_to_noise']
-                doppler_noise_hz = extracted_data['doppler_noise_hz']
+                signal_to_noise = extracted_data['Signal-to-Noise']
+                doppler_noise_hz = extracted_data['Doppler Noise [Hz]']
                 first_col_name = extracted_data['first_col_name']
                 second_col_name = extracted_data['second_col_name']
                 fifth_col_name = extracted_data['fifth_col_name']
                 utc_date = extracted_data['utc_date']
                 base_frequency = extracted_data['base_frequency']
-                frequency_detection = extracted_data['frequency_detection']
+                frequency_detection = extracted_data['Freq detection [Hz]']
 
                 # Calculate sampling rate in Hz
                 t_jd = [Time(time).jd for time in utc_datetime]
@@ -3392,8 +3449,8 @@ class PrideDopplerCharacterization:
 
             utc_datetime = extracted_data['utc_datetime']
             base_frequency = extracted_data['base_frequency']
-            frequency_detection = extracted_data['frequency_detection']
-            doppler_noise_hz = extracted_data['doppler_noise_hz']
+            frequency_detection = extracted_data['Freq detection [Hz]']
+            doppler_noise_hz = extracted_data['Doppler Noise [Hz]']
 
             # Convert UTC datetime to Julian Date
             t_jd = [Time(time).jd for time in utc_datetime]
@@ -3465,9 +3522,9 @@ class PrideDopplerCharacterization:
             extracted_data : dict
                 A dictionary containing the following keys:
                 - 'utc_datetime' (list of datetime objects): UTC times of the observations.
-                - 'signal_to_noise' (list of floats): Signal-to-Noise Ratio values.
-                - 'doppler_noise_hz' (list of floats): Doppler noise values in Hz.
-                - 'frequency_detection' (list of ints): Frequency detection counts.
+                - 'Signal-to-Noise' (list of floats): Signal-to-Noise Ratio values.
+                - 'Doppler Noise [Hz]' (list of floats): Doppler noise values in Hz.
+                - 'Freq detection [Hz]' (list of ints): Frequency detection counts.
                 - 'utc_date' (str): Date of the observations (e.g., 'YYYY-MM-DD').
                 - 'receiving_station_name' (str): Name of the receiving station.
 
@@ -3497,9 +3554,9 @@ class PrideDopplerCharacterization:
             """
             if extracted_data is not None:
                 utc_datetime = extracted_data['utc_datetime']
-                signal_to_noise = extracted_data['signal_to_noise']
-                doppler_noise_hz = extracted_data['doppler_noise_hz']
-                frequency_detection = extracted_data['frequency_detection']
+                signal_to_noise = extracted_data['Signal-to-Noise']
+                doppler_noise_hz = extracted_data['Doppler Noise [Hz]']
+                frequency_detection = extracted_data['Freq detection [Hz]']
                 utc_date = extracted_data['utc_date']
                 receiving_station = extracted_data["receiving_station_name"]
 
@@ -3627,7 +3684,7 @@ class PrideDopplerCharacterization:
 
                 for i, extracted_data in enumerate(station_data_list):
                     utc_datetime = np.array(extracted_data['utc_datetime'])
-                    doppler_noise_hz = np.array(extracted_data['doppler_noise_hz'])
+                    doppler_noise_hz = np.array(extracted_data['Doppler Noise [Hz]'])
 
                     for date in unique_dates_list:
                         date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
@@ -3703,7 +3760,7 @@ class PrideDopplerCharacterization:
 
                 for i, extracted_data in enumerate(station_data_list):
                     utc_datetime = extracted_data['utc_datetime']
-                    snr = np.array(extracted_data['signal_to_noise'])
+                    snr = np.array(extracted_data['Signal-to-Noise'])
 
                     for date in unique_dates_list:
                         date_data_mask = np.array([d.strftime('%Y-%m-%d') == date for d in utc_datetime])
@@ -3738,7 +3795,7 @@ class PrideDopplerCharacterization:
             Args:
                 extracted_data_list (list): List of extracted_data dicts, each containing:
                                             - 'utc_datetime': List of timestamps
-                                            - 'doppler_noise_hz': List of Doppler noise values
+                                            - 'Doppler Noise [Hz]': List of Doppler noise values
                                             - 'receiving_station_name': Name of the station
                 mission_name (str): Name of the mission.
                 save_dir (str, optional): Directory to save the plot.
@@ -3751,7 +3808,7 @@ class PrideDopplerCharacterization:
                 station_name = extracted_data['receiving_station_name']
                 #if station_name == 'Wz':
                 #    continue
-                doppler_noise_hz = extracted_data['doppler_noise_hz']
+                doppler_noise_hz = extracted_data['Doppler Noise [Hz]']
                 # Store each value with its corresponding station
                 for value in doppler_noise_hz:
                     data_list.append({'Doppler Noise (Hz)': value, 'Station': station_name})
@@ -3800,7 +3857,7 @@ class PrideDopplerCharacterization:
                 station_name = extracted_data['receiving_station_name']
                 #if station_name == 'Wz':
                 #    continue
-                snr = extracted_data['signal_to_noise']
+                snr = extracted_data['Signal-to-Noise']
 
                 # Store each value with its corresponding station
                 for value in snr:
@@ -3837,8 +3894,8 @@ class PrideDopplerCharacterization:
             Args:
                 extracted_data_list (list): List of extracted_data dicts, each containing:
                                             - 'utc_datetime': List of timestamps
-                                            - 'signal_to_noise': List of SNR values
-                                            - 'doppler_noise_hz': List of Doppler noise values
+                                            - 'Signal-to-Noise': List of SNR values
+                                            - 'Doppler Noise [Hz]': List of Doppler noise values
                                             - 'receiving_station_name': Name of the station
                 mission_name (str): Name of the mission.
                 save_dir (str, optional): Directory to save the plot.
@@ -3851,8 +3908,8 @@ class PrideDopplerCharacterization:
                 #if station_name == 'Wz':
                 #    continue
                 utc_datetime = extracted_data['utc_datetime']
-                snr = np.array(extracted_data['signal_to_noise'])
-                doppler_noise = np.array(extracted_data['doppler_noise_hz'])
+                snr = np.array(extracted_data['Signal-to-Noise'])
+                doppler_noise = np.array(extracted_data['Doppler Noise [Hz]'])
 
                 unique_dates = sorted(set(d.strftime('%Y-%m-%d') for d in utc_datetime))
 

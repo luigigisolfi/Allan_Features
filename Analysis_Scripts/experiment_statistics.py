@@ -41,8 +41,9 @@ experiments_to_analyze = {
     'vex': ['vex_140106','vex_140109','vex_140110','vex_140113','vex_140118','vex_140119','vex_140120','vex_140123','vex_140126','vex_140127', 'vex_140131']
 }
 
-#experiments_to_analyze = {
-#    'mex': ['gr035']}
+experiments_to_analyze = {
+    'juice': ["ec094b"]
+}
 
 
 # Division by experiments
@@ -79,11 +80,16 @@ for mission_name, experiment_names in experiments_to_analyze.items():
         for file in os.listdir(dir_path):
             if file.startswith('Fdets') and file.endswith('r2i.txt'):
                 files_list.append(os.path.join(dir_path, file))
+                print(files_list)
 
         # Extract data
         extracted_data_list = process_fdets.extract_folder_data(dir_path)
 
-        for extracted_data in extracted_data_list:
+        filtered_extracted_data_list = analysis.two_step_filter(extracted_data_list)
+
+        print(filtered_extracted_data_list)
+
+        for extracted_data in filtered_extracted_data_list:
             station_id = extracted_data['receiving_station_name']
             for file_name in files_list:
                 if station_id != process_fdets.get_station_name_from_file(file_name):
@@ -116,7 +122,7 @@ for mission_name, experiment_names in experiments_to_analyze.items():
         analysis.get_all_stations_statistics(
             fdets_folder_path = fdets_folder_path,
             mission_name = mission_name,
-            extracted_parameters_list= extracted_data_list,
+            extracted_parameters_list= filtered_extracted_data_list,
             doppler_noise_statistics = True,
             snr_statistics= True,
             save_dir = os.path.join(output_dir, 'statistics')

@@ -1,39 +1,18 @@
-# %%
-# %matplotlib inline
-
-# %% [markdown]
-"""
-# This script can be used on the PRIDE_DATA folder to reproduce Vidhya's paper plots.
-# This script has the division by EXPERIMENT NAMES. If you want the division by times, check the script: dataset_statistics_by_time.
-This script analyzes radio science experiments for: JUICE, MEX, MRO, MARS INSIGHT.
-It computes and plots Key Performance Indicators (FOMs) such as mean Signal-to-Noise Ratio (SNR),
-rms SNR, mean Doppler noise, and mean elevation angle across multiple PRIDE ground stations.
-
-The workflow includes:
-- Loading user-defined parameters (SNR, Doppler noise) and elevation data
-- Filtering based on SNR and allowed Doppler noise thresholds
-- Computing weighted and unweighted averages to populate table 5 of Vidhya's paper
-- Visualizing results in a set of subplots
-
-Requirements:
-    - The data files where the FOMs are read from are must be present in the output_dir folder, and they are created via experiment_statistics.py .
-"""
-from pyparsing import countedArray
-
-# %%
 from pride_characterization_library import PrideDopplerCharacterization
 import os
 from collections import defaultdict
 import matplotlib.pyplot as plt
-import numpy as np
-import random
-from scipy.stats import norm
-import pandas as pd
-from matplotlib.ticker import MaxNLocator
 import copy
+import numpy as np
+from scipy.stats import norm
+import random
+import re
 import matplotlib.dates as mdates
+from datetime import datetime, timezone
+from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
 import datetime
+
 # %%
 def generate_random_color():
     """Generates a random, well-spaced color in hexadecimal format."""
@@ -47,22 +26,131 @@ process_fdets = pride.ProcessFdets() # create Process Fdets Object
 utilities = pride.Utilities() # create Utilities Object
 analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
-# Select the experiment(s) for which data analysis will be performed
-experiments_to_analyze = {
-    'juice': ["ec094a", "ec094b"],
-    'mex': ['gr035'],
-    'min': ['ed045a','ed045c','ed045d','ed045e','ed045f'],
-    'mro': ['ec064'],
-    'vex': ['vex_140106','vex_140109','vex_140110','vex_140113','vex_140118','vex_140119','vex_140120','vex_140123','vex_140126','vex_140127', 'vex_140131']
-}
-# Select the experiment(s) for which data analysis will be performed
-experiments_to_analyze = {
-    'vex': ['vex_140106','vex_140109','vex_140110','vex_140113','vex_140118','vex_140119','vex_140120','vex_140123','vex_140126','vex_140127', 'vex_140131']
-}
+plot_gaussian_flag = False
+compare_filters_flag = False
+bad_obs_flag = True # if set to true, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
+
+start_date = datetime.datetime(2013, 1, 1, tzinfo=timezone.utc)
+end_date =  datetime.datetime(2013, 12, 31, tzinfo=timezone.utc)
+yymm_folders_to_consider = utilities.list_yymm(start_date, end_date)
+
+months_list = list(yymm_folders_to_consider.keys())
+days_list = [item for sublist in yymm_folders_to_consider.values() for item in sublist]
+
+root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/'
+experiments_to_analyze = defaultdict(list)
+missions_to_analyse = ['mex']
+yymmdd_folders_per_mission = defaultdict(list)
+
+for mission_name in missions_to_analyse:
+    mission_root = os.path.join(root_dir, mission_name)
+
+    if not os.path.exists(mission_root):
+        print(f"⚠️  Warning: Mission root path '{mission_root}' does not exist.")
+        continue
+
+    for yymm_folder in months_list:
+        month_folder_name = f"{mission_name}_{yymm_folder}"
+        month_folder_path = os.path.join(mission_root, month_folder_name)
+
+        if not os.path.exists(month_folder_path):
+            continue  # <-- continue to next yymm_folder
+
+        for yymmdd in days_list:
+            day_folder_name = f"{mission_name}_{yymmdd}"
+            day_folder_path = os.path.join(month_folder_path, day_folder_name)
+
+            if not os.path.exists(day_folder_path):
+                continue  # <-- continue to next yymmdd_folder
+
+            yymmdd_folders_per_mission[mission_name].append(yymmdd)
+
+experiments_to_analyze = yymmdd_folders_per_mission
+
+from pride_characterization_library import PrideDopplerCharacterization
+import os
+from collections import defaultdict
+import matplotlib.pyplot as plt
+import copy
+import numpy as np
+from scipy.stats import norm
+import random
+import re
+import matplotlib.dates as mdates
+from datetime import datetime, timezone
+from matplotlib.ticker import MaxNLocator
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
+import datetime
+
+# %%
+def generate_random_color():
+    """Generates a random, well-spaced color in hexadecimal format."""
+    r = random.randint(0, 220)  # Avoid extremes (too dark/light)
+    g = random.randint(0, 220)
+    b = random.randint(0, 220)
+    return "#{:02x}{:02x}{:02x}".format(r, g, b)
+# %%
+pride = PrideDopplerCharacterization() # create PRIDE Object
+process_fdets = pride.ProcessFdets() # create Process Fdets Object
+utilities = pride.Utilities() # create Utilities Object
+analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 plot_gaussian_flag = False
 compare_filters_flag = False
-bad_obs_flag = False # if set to true, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
+bad_obs_flag = True # if set to true, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
+
+start_date = datetime.datetime(2013, 1, 1, tzinfo=timezone.utc)
+end_date =  datetime.datetime(2025, 12, 31, tzinfo=timezone.utc)
+yymm_folders_to_consider = utilities.list_yymm(start_date, end_date)
+
+months_list = list(yymm_folders_to_consider.keys())
+days_list = [item for sublist in yymm_folders_to_consider.values() for item in sublist]
+
+root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/'
+experiments_to_analyze = defaultdict(list)
+missions_to_analyse = ['juice']
+yymmdd_folders_per_mission = defaultdict(list)
+
+for mission_name in missions_to_analyse:
+    mission_root = os.path.join(root_dir, mission_name)
+
+    if not os.path.exists(mission_root):
+        print(f"⚠️  Warning: Mission root path '{mission_root}' does not exist.")
+        continue
+
+    for yymm_folder in months_list:
+        month_folder_name = f"{mission_name}_{yymm_folder}"
+        month_folder_path = os.path.join(mission_root, month_folder_name)
+
+        if not os.path.exists(month_folder_path):
+            continue  # <-- continue to next yymm_folder
+
+        for yymmdd in days_list:
+            day_folder_name = f"{mission_name}_{yymmdd}"
+            day_folder_path = os.path.join(month_folder_path, day_folder_name)
+
+            if not os.path.exists(day_folder_path):
+                continue  # <-- continue to next yymmdd_folder
+
+            yymmdd_folders_per_mission[mission_name].append(yymmdd)
+
+experiments_to_analyze = yymmdd_folders_per_mission
+
+# Produce Allan Index Plot
+#for mission_name, yymmdds in yymmdd_folders_per_mission.items():
+#   yymmdd_folders = [mission_name + '_' + yymmdd for yymmdd in yymmdds]
+#    yymm_folders = [mission_name + '_' + yymmdd[:4] for yymmdd in yymmdds]
+#    experiment_names = [utilities.find_experiment_from_yymmdd(yymmdd) for yymmdd in yymmdds]
+#    for yymm_folder, yymmdd_folder, experiment_name in zip(yymm_folders, yymmdd_folders, experiment_names):
+#        fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/input/complete' #or insert your path
+#       output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/output/' #or insert your path
+#        tau_min = 0
+#       tau_max = 100
+#        save_dir = output_dir
+#        suppress = False
+#        analysis.get_all_stations_oadev_plot(fdets_folder_path, mission_name, experiment_name, tau_min = tau_min, tau_max = tau_max, two_step_filter = True, save_dir = output_dir)
+#
+#exit()
 
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
@@ -71,10 +159,20 @@ color_dict = defaultdict(list)
 bad_observations_mean_doppler_filter = 0.005 #Hz = 5 mHz
 
 # Loop through missions and experiments
-for mission_name, experiment_names in experiments_to_analyze.items():
+for mission_name, yymmdds in yymmdd_folders_per_mission.items():
+    yymmdd_folders = [mission_name + '_' + yymmdd for yymmdd in yymmdds]
+    yymm_folders = [mission_name + '_' + yymmdd[:4] for yymmdd in yymmdds]
+    experiment_names = [utilities.find_experiment_from_yymmdd(yymmdd) for yymmdd in yymmdds]
+    for yymm_folder, yymmdd_folder, experiment_name in zip(yymm_folders, yymmdd_folders, experiment_names):
+        fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/input/complete' #or insert your path
+        output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/output/' #or insert your path
 
-    for experiment_name in experiment_names:
-        # Assign color (fixed red for 'vex', random otherwise)
+        tau_min = 0
+        tau_max = 100
+        save_dir = output_dir
+        suppress = False
+        analysis.get_all_stations_oadev_plot(fdets_folder_path, mission_name, experiment_name, tau_min = tau_min, tau_max = tau_max, two_step_filter = True, save_dir = output_dir)
+
         if mission_name == 'vex':
             color_dict[experiment_name] = 'red'
         elif mission_name == 'mro':
@@ -94,14 +192,6 @@ for mission_name, experiment_names in experiments_to_analyze.items():
 
         else:
             color_dict[experiment_name] = generate_random_color()
-
-        fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/{experiment_name}/input/complete' #or insert your path
-
-        if mission_name == 'vex':
-            output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/usable/converted_old_format_files/vex_1401/{experiment_name}/output/' #or insert your path
-
-        else:
-            output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/{mission_name}/{experiment_name}/output/' #or insert your path
 
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')
@@ -195,29 +285,8 @@ for mission_name, experiment_names in experiments_to_analyze.items():
                 ax2.legend()
                 ax2.set_title(f'{mission_name.upper()} — Doppler Noise | Station: {station_code}')
 
-                # --- Add Inset Zoom ---
-                axins = inset_axes(ax2, width="30%", height="20%", loc='upper right')
-
-                axins.plot(dates, doppler_noise_array*1000, marker='o', linestyle='-', color='blue', markersize=3, linewidth=0.5, alpha=0.7)
-                axins.plot(filtered_dates, filtered_doppler_noise*1000, marker='x', linestyle='-', color='orange', markersize=5, linewidth=0.5, alpha=0.5)
-
-                # Set x-limits for the inset based on HH:MM time (assuming `dates` is a datetime array)
-                zoom_start = datetime.datetime.strptime(f"{day} 01:53", "%Y-%m-%d %H:%M")
-                zoom_end = datetime.datetime.strptime(f"{day} 02:00", "%Y-%m-%d %H:%M")
-
-                axins.set_xlim(zoom_start, zoom_end)
-
-                # Optionally set y-limits to match the zoomed-in range
-                subset = [val for d, val in zip(dates, doppler_noise_array) if zoom_start <= d <= zoom_end]
-                if subset:
-                    axins.set_ylim(min(subset)*1000*0.95, max(subset)*1000*1.05)
-
-                axins.grid(True)
-                mark_inset(ax2, axins, loc1=2, loc2=4, fc="none", ec="gray", linewidth=0.5)
-
                 # Improve x-axis labels
                 ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-                axins.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
                 locator=MaxNLocator(prune='both', nbins=20)
                 ax2.xaxis.set_major_locator(locator)
                 plt.tight_layout()
@@ -295,31 +364,18 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
             labels_snr_vs_noise.add(experiment_name)
 
             # Plot SNR on the first subplot
-            if experiment_name[:3] == 'vex':
-                ax1.errorbar(station, mean_snr, linewidth=2, fmt='o', markersize=6, alpha=0.5,
-                             color=color, label='Venus Express 2014/01' if 'Venus Express 2014/01' not in labels_snr else None)
-                labels_snr.add('Venus Express 2014/01')
-                ax2.errorbar(mean_snr, rms_doppler, fmt='o',markersize=6, alpha=0.6,
-                             color=color, label = label)
-                ax2.annotate(station, (mean_snr, rms_doppler), fontsize=10, alpha=0.7)
-                labels_snr_vs_noise.add('Venus Express 2014/01')
-
-                ax3.errorbar(mean_elevation, mean_snr, fmt='o', markersize=3*antenna_diameter/10, alpha=0.6,
-                             color=color, label = label)
-                ax3.annotate(station, (mean_elevation, mean_snr), fontsize=10, alpha=0.7)
-            else:
-                ax1.errorbar(station, mean_snr, linewidth=2, fmt='o', markersize=6, alpha=0.5,
-                             color=color, label = label)
-                # Plot Doppler Noise on the second subplot
-                #ax2.errorbar(station, mean_doppler, linewidth=2, fmt='o', markersize=6, alpha=0.5,
-                #             color=color, label = label)
-                # Plot SNR vs. Doppler Noise on the third subplot
-                ax2.errorbar(mean_snr, rms_doppler, fmt='o',markersize=6, alpha=0.6,
-                             color=color, label = label)
-                ax2.annotate(station, (mean_snr, rms_doppler), fontsize=10, alpha=0.7)
-                ax3.errorbar(mean_elevation, mean_snr, fmt='o', markersize=3*antenna_diameter/10, alpha=0.6,
-                             color=color, label = label)
-                ax3.annotate(station, (mean_elevation, mean_snr), fontsize=10, alpha=0.7)
+            ax1.errorbar(station, mean_snr, linewidth=2, fmt='o', markersize=6, alpha=0.5,
+                         color=color, label = label)
+            # Plot Doppler Noise on the second subplot
+            #ax2.errorbar(station, mean_doppler, linewidth=2, fmt='o', markersize=6, alpha=0.5,
+            #             color=color, label = label)
+            # Plot SNR vs. Doppler Noise on the third subplot
+            ax2.errorbar(mean_snr, rms_doppler, fmt='o',markersize=6, alpha=0.6,
+                         color=color, label = label)
+            ax2.annotate(station, (mean_snr, rms_doppler), fontsize=10, alpha=0.7)
+            ax3.errorbar(mean_elevation, mean_snr, fmt='o', markersize=3*antenna_diameter/10, alpha=0.6,
+                         color=color, label = label)
+            ax3.annotate(station, (mean_elevation, mean_snr), fontsize=10, alpha=0.7)
 
 bad_observations_percentage = (count_bad/count)*100
 print(count, count_bad)
