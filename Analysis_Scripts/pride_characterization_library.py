@@ -13,7 +13,6 @@ from astropy.time import Time
 import allantools
 from matplotlib import cm
 from datetime import datetime, timedelta, timezone
-from dateutil.relativedelta import relativedelta
 import matplotlib.patches as mpatches
 import seaborn as sns
 from PIL import Image
@@ -177,7 +176,6 @@ class PrideDopplerCharacterization:
                 self.receiving_station_name = match.group(1)
                 return self.receiving_station_name
             else:
-                print(fdets_file_name)
                 return None
 
         def get_columns_names(self, filename):
@@ -272,7 +270,6 @@ class PrideDopplerCharacterization:
 
 
         def extract_parameters(self, filename):
-            print(f'Extracting Parameters for filename: {filename}...')
 
             fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
             match = re.search(fdets_filename_pattern, filename)
@@ -282,7 +279,6 @@ class PrideDopplerCharacterization:
                 return None
 
             self.receiving_station_name = match.group(1)
-            print(self.receiving_station_name)
             self.observation_date = self.get_observation_date(filename)
             self.base_frequency = self.get_base_frequency(filename)
 
@@ -2841,7 +2837,6 @@ class PrideDopplerCharacterization:
 
                         # Check if the slope is close to the target slope
                         is_close.append((slope_error_plus <= target_slope and target_slope <= slope_error_minus) or (slope_error_minus <= target_slope and target_slope <= slope_error_plus) or abs(slope - target_slope) <= 0.1)
-                        #print(f"Interval {taus_doppler[i]:.3f} - {taus_doppler[i+1]:.3f}: Slope Bounds= {slope_error_plus:.3f},{slope_error_minus:.3f} Target Slope Falls Within Slope Bounds, or the slope is closer than 0.1: {'Yes' if is_close[i] else 'No'}")
                         mean_weights.append((norm_weights[i] + norm_weights[i+1])/2) #the mean of the two weights at endpoints
                         # is considered for the interval.
 
@@ -2856,9 +2851,6 @@ class PrideDopplerCharacterization:
                             # For each interval in the region, use the specific weight of the interval
                             weight = mean_weights[i]  # Use weight for the current interval
                             color = cmap(weight)  # Get color based on current interval's weight
-
-                            # Print the weight and corresponding color for debugging
-                            #print(f"Interval {taus_doppler[i]:.3f} - {taus_doppler[i+1]:.3f}, Weight: {weight:.3f}, Color: {color}")
 
                             # Plot the interval using axvspan
                             if plot_oadev_only:
@@ -2932,7 +2924,6 @@ class PrideDopplerCharacterization:
 
                 else:
                     plt.show()
-
                     plt.close(fig)
 
             else:
@@ -2982,7 +2973,8 @@ class PrideDopplerCharacterization:
                     if  np.abs(np.mean(doppler_noise)) < 0.005:
                         filtered_list.append(entry)
                     else:
-                        print('Bad observation detected. It will not enter allan deviation plot')
+                        station_name = entry.get("receiving_station_name", [])
+                        print(f'Station {station_name}: Bad observation detected.')
                         filtered_list.append(entry)
                 else:
                     print('No doppler noise entry found. Maybe check the corresponding dictionary key name.')
@@ -3021,7 +3013,6 @@ class PrideDopplerCharacterization:
             for date in unique_dates_list:
                 fig, ax = plt.subplots(figsize=(10, 5))
                 output_rows = []  # For CSV
-                print('date', date)
                 for i, extracted_data in enumerate(extracted_data_list):
                     color = colors(i)
                     receiving_station_name = extracted_data['receiving_station_name']
@@ -3107,7 +3098,7 @@ class PrideDopplerCharacterization:
                 if not suppress:
                     plt.show()
 
-                plt.close(fig)
+                plt.close()
 
                 # Save CSV
                 if save_dir and output_rows:
@@ -3133,7 +3124,6 @@ class PrideDopplerCharacterization:
                 extracted_parameters_list = self.two_step_filter(extracted_parameters_list)
 
             if experiment_name:
-                print('experiment_name')
                 self.plot_oadev_stations(
                     extracted_parameters_list,
                     mission_name = mission_name,
@@ -3642,6 +3632,8 @@ class PrideDopplerCharacterization:
                 if not suppress:
                     plt.show()
 
+                plt.close()
+
         ########################################################################################################################################
         ########################################################################################################################################
 
@@ -3720,7 +3712,7 @@ class PrideDopplerCharacterization:
 
                 if not suppress:
                     plt.show()
-
+                plt.close()
         def get_snr_statistics(self, extracted_data_list, mission_name, save_dir=None, suppress=False):
             """
             Plots histograms of SNR for each station, grouped by date.
@@ -3786,6 +3778,8 @@ class PrideDopplerCharacterization:
                 if not suppress:
                     plt.show()
 
+                plt.close()
+
 
         def plot_doppler_noise_distribution(self, extracted_data_list, mission_name, save_dir=None, suppress=True):
             """
@@ -3836,6 +3830,8 @@ class PrideDopplerCharacterization:
             if not suppress:
                 plt.show()
 
+            plt.close()
+
         def plot_snr_distribution(self, extracted_data_list, mission_name, save_dir=None, suppress=True):
             """
             Plots the Doppler noise distribution for all stations in a single histogram using sns.displot.
@@ -3885,6 +3881,7 @@ class PrideDopplerCharacterization:
             if not suppress:
                 plt.show()
 
+            plt.close()
 
         def plot_snr_and_doppler_noise_statistics(self, extracted_data_list, mission_name, save_dir=None, suppress=False):
             """
@@ -3959,6 +3956,8 @@ class PrideDopplerCharacterization:
 
             if not suppress:
                 plt.show()
+
+            plt.close()
 
         def get_all_stations_statistics(self, fdets_folder_path,  mission_name, extracted_parameters_list = None, doppler_noise_statistics = False, snr_statistics = False, suppress = True, save_dir = None):
 
@@ -4062,8 +4061,6 @@ class PrideDopplerCharacterization:
             station_names = [self.Utilities.ID_to_site(site_ID) for site_ID in station_ids if site_ID is not None]
             geodetic_states = [self.Utilities.site_to_geodetic_position(station_name) for station_name in station_names]
             fdets_filename_pattern = r"Fdets\.\w+\d{4}\.\d{2}\.\d{2}(?:-\d{4}-\d{4})?\.(\w+)(?:\.complete)?\.r2i\.txt"
-            print(station_names)
-            print(geodetic_states)
             plt.figure(figsize=(13, 10))  # Initialize the plot
             station_plots = []  # List to store station names for saving plot filenames
 
@@ -4075,7 +4072,6 @@ class PrideDopplerCharacterization:
                     continue
 
                 receiving_station_name = match.group(1)
-                print(receiving_station_name)
 
                 times = []
                 times_strings = []
@@ -4149,6 +4145,8 @@ class PrideDopplerCharacterization:
 
             if not suppress:
                 plt.show()
+
+            plt.close()
 
             # Handle saving plot based on single or multiple stations
             if save_dir:

@@ -7,9 +7,13 @@ import numpy as np
 from scipy.stats import norm
 import random
 import matplotlib.dates as mdates
-from datetime import datetime, timezone
 from matplotlib.ticker import MaxNLocator
+from pride_characterization_library import PrideDopplerCharacterization
+import os
+from collections import defaultdict
+from datetime import timezone
 import datetime
+import shutil
 
 # %%
 def generate_random_color():
@@ -25,21 +29,26 @@ process_fdets = pride.ProcessFdets() # create Process Fdets Object
 utilities = pride.Utilities() # create Utilities Object
 analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
-ALLAN_DEVIATIONS_FLAG = False
-PLOT_GAUSSIAN_FLAG = False
-COMPARE_FILTERS_FLAG = False
-BAD_OBSERVATIONS_FLAG = True # if set to true, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
+############################################################ SET THE FLAGS ###########################################################################
+RUN_EXPERIMENTS_STATISTICS_FLAG = False # if True, creates the outputs from which the analysis is carried out.
+ALLAN_DEVIATIONS_FLAG = True # if True, creates and shows the Overlapping Allan Deviation plots.
+PLOT_GAUSSIAN_FLAG = False # if True, it plots the best fit Gaussian on top of Doppler noise distribution
+COMPARE_FILTERS_FLAG = False # if True, it plots the original data vs the z-score filtered one.
+BAD_OBSERVATIONS_FLAG = True # if True, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
+######################################################################################################################################################
 
+
+# Select preferred start date end end date to perform the analysis
 start_date = datetime.datetime(2000, 1, 1, tzinfo=timezone.utc)
 end_date =  datetime.datetime(2024, 12, 31, tzinfo=timezone.utc)
-yymm_folders_to_consider = utilities.list_yymm(start_date, end_date)
+missions_to_analyse = ['mex', 'juice', 'min', 'mro', 'vex'] # select only the preferred mission names for which to perform the analysis
 
+root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/' # change this to your folder containing PRIDE data
+
+yymm_folders_to_consider = utilities.list_yymm(start_date, end_date)
 months_list = list(yymm_folders_to_consider.keys())
 days_list = [item for sublist in yymm_folders_to_consider.values() for item in sublist]
-
-root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/'
 experiments_to_analyze = defaultdict(list)
-missions_to_analyse = ['mro']
 yymmdd_folders_per_mission = defaultdict(list)
 
 for mission_name in missions_to_analyse:
@@ -49,16 +58,15 @@ for mission_name in missions_to_analyse:
         continue
 
     for yymm_folder in months_list:
+        if mission_name == 'vex' and yymm_folder != '1401':
+            continue
         month_folder_name = f"{mission_name}_{yymm_folder}"
         month_folder_path = os.path.join(mission_root, month_folder_name)
-
         if not os.path.exists(month_folder_path):
             continue  # continue to next yymmdd_folder
-
         for yymmdd in days_list:
             day_folder_name = f"{mission_name}_{yymmdd}"
             day_folder_path = os.path.join(month_folder_path, day_folder_name)
-
             if not os.path.exists(day_folder_path):
                 continue  # continue to next yymmdd_folder
             yymmdd_folders_per_mission[mission_name].append(yymmdd)
@@ -66,19 +74,20 @@ for mission_name in missions_to_analyse:
 if not yymmdd_folders_per_mission:
     print(f'No files found between {start_date} and {end_date} for mission: {mission_name.upper()}.\nAborting...\n')
     exit()
-experiments_to_analyze = yymmdd_folders_per_mission
+
+experiments_to_analyze = yymmdd_folders_per_mission # this is a dict, e.g. {'juice': [ec094a,ec094b, juice_YYMMDD], 'mex':[gr035]}
 
 # Create empty dictionaries to be filled with meaningful values
 mean_rms_user_defined_parameters = defaultdict(list)
 mean_elevations = defaultdict(list)
 color_dict = defaultdict(list)
-bad_observations_mean_doppler_filter = 0.005 #Hz = 5 mHz
+
+bad_observations_mean_doppler_filter = 0.005 # Hz = 5 mHz - Defines the highest acceptable value of mean Doppler noise for a given pass over a station
 
 # Loop through missions and experiments
 for mission_name, yymmdds in yymmdd_folders_per_mission.items():
     yymmdd_folders = [mission_name + '_' + yymmdd for yymmdd in yymmdds]
     yymm_folders = [mission_name + '_' + yymmdd[:4] for yymmdd in yymmdds]
-    print([utilities.find_experiment_from_yymmdd(yymmdd) for yymmdd in yymmdds])
     experiment_names = [utilities.find_experiment_from_yymmdd(yymmdd) for yymmdd in yymmdds]
 
     if BAD_OBSERVATIONS_FLAG and mission_name == 'mro':
@@ -88,15 +97,109 @@ for mission_name, yymmdds in yymmdd_folders_per_mission.items():
         fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/input/complete' #or insert your path
         output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/output/' #or insert your path
 
+        if RUN_EXPERIMENTS_STATISTICS_FLAG:
+            if os.path.exists(output_dir):
+                print(f'Deleting directory {output_dir}')
+                shutil.rmtree(output_dir)
+            horizons_target = utilities.mission_name_to_horizons_target(mission_name) # get target name from Horizons
+            print(f'Creating Outputs for mission: {mission_name} (Horizons Code: {horizons_target})...')
+            # Get list of FDETS files
+            dir_path = fdets_folder_path
+            files_list = []
+            station_ids = []
+            for file in os.listdir(dir_path):
+                if file.startswith('Fdets') and file.endswith('r2i.txt'):
+                    files_list.append(os.path.join(dir_path, file))
+            # Extract data
+            extracted_data_list = process_fdets.extract_folder_data(dir_path)
 
+            # Uncomment the following line to plot the filtered data in the outputs (instead of the original PRIDE data).
+            #extracted_data_list = analysis.two_step_filter(extracted_data_list)
+
+            for extracted_data in extracted_data_list:
+                station_id = extracted_data['receiving_station_name']
+                for file_name in files_list:
+                    if station_id != process_fdets.get_station_name_from_file(file_name):
+                        continue
+                    else:
+                        # Plot user-defined parameters (doppler noise, SNR, fdets)
+                        analysis.plot_user_defined_parameters(
+                            extracted_data,
+                            save_dir = os.path.join(output_dir, 'user_defined_parameters'),
+                            plot_snr = True,
+                            plot_doppler_noise = True,
+                            plot_fdets= True,
+                            suppress = True
+                        )
+                        # Plot elevation for each file (station)
+                        analysis.get_elevation_plot(
+                            [file_name],
+                            horizons_target,
+                            [station_id],
+                            mission_name =mission_name ,
+                            suppress = True,
+                            save_dir = os.path.join(output_dir, 'elevation')
+                        )
+                        station_ids.append(station_id) # Append station_id to list station_ids
+
+            # Plot SNR and Doppler Noise statistics
+            analysis.get_all_stations_statistics(
+                fdets_folder_path = fdets_folder_path,
+                mission_name = mission_name,
+                extracted_parameters_list= extracted_data_list,
+                doppler_noise_statistics = True,
+                snr_statistics= True,
+                save_dir = os.path.join(output_dir, 'statistics')
+            )
+            # Plot combined elevation plot for all stations
+            analysis.get_elevation_plot(
+                files_list,
+                horizons_target,
+                station_ids,
+                mission_name,
+                suppress = True,
+                save_dir = os.path.join(output_dir, 'statistics')
+            )
+            #Combine Images
+            snr_noise_folder = os.path.join(output_dir, 'user_defined_parameters/snr_noise_fdets')
+            elevation_folder = os.path.join(output_dir, 'elevation')
+
+            # Get lists of image filenames from both folders
+            snr_images = sorted([file for file in os.listdir(snr_noise_folder) if file.endswith('.png')])  # Ensure sorted order
+            elevation_images = sorted([file for file in os.listdir(elevation_folder) if file.endswith('.png')])  # Ensure sorted order
+
+            # Zip them into tuples (assuming each folder contains matching files)
+            images_to_combine = zip(snr_images, elevation_images)
+
+            # Iterate through image pairs and combine them
+            for snr_image, elevation_image in images_to_combine:
+                station_id = snr_image.split('_')[0]
+                date = snr_image.split('_')[1]
+
+                # Create full paths
+                snr_image_path = os.path.join(snr_noise_folder, snr_image)
+                elevation_image_path = os.path.join(elevation_folder, elevation_image)
+
+                # Call the function with a list of tuples, maintaining correct filename
+                utilities.combine_plots(
+                    image_paths =[snr_image_path, elevation_image_path],  # Pass a list of image paths
+                    output_dir = os.path.join(output_dir, 'elevation_snr_noise'),
+                    output_file_name=f'{station_id}_{date}_combined.png',
+                    direction='vertical'
+                )
+
+        plt.close('all') # close all unintentionally open plots
+
+        # Produce Allan Deviations plot
         if ALLAN_DEVIATIONS_FLAG:
-            # Produce Allan Deviations plot
+            print('Creating Overlapping Allan Deviation plot...')
             tau_min = 0
             tau_max = 100
             save_dir = output_dir
             suppress = False
             analysis.get_all_stations_oadev_plot(fdets_folder_path, mission_name, experiment_name, tau_min = tau_min, tau_max = tau_max, two_step_filter = True, save_dir = output_dir)
 
+        # Set colors for plotting (based on mission name)
         if mission_name == 'vex':
             color_dict[experiment_name] = 'red'
         elif mission_name == 'mro':
@@ -162,8 +265,9 @@ for mission_name, yymmdds in yymmdd_folders_per_mission.items():
                 filtered_doppler_noise = doppler_noise_array[z_score_filter]
                 median_retained = len(filtered_dates)*100/len(dates)
 
-                # Gaussian
+                # Produces gaussian best fit plots
                 if PLOT_GAUSSIAN_FLAG:
+                    print('Plotting best gaussian...')
                     # Fit Gaussian
                     mu, std = norm.fit(filtered_doppler_noise*1000)
                     fig, ax = plt.subplots(1, 1, figsize=(10, 5), sharex=True)
@@ -177,27 +281,32 @@ for mission_name, yymmdds in yymmdd_folders_per_mission.items():
                     plt.ylabel('Counts')
                     ax.legend()
                     plt.show()
-                
+
+                # produces filtered (z-score) vs unfiltered (original PRIDE data) plots
                 if COMPARE_FILTERS_FLAG:
+                    print('Plotting filtered vs unfiltered data...')
                     hours_only = [dt.strftime('%H:%M') for dt in dates]
                     filtered_hours_only = [dt.strftime('%H:%M:%S') for dt in filtered_dates]
                     day = dates[0].strftime('%Y-%m-%d')
-    
+
                     print(f'{station_code}, z-score Retained %: {median_retained}')
-    
+
                     # Create two vertically stacked subplots
-                    fig, ax2 = plt.subplots(1, 1, figsize=(12, 8), sharex=True)
-    
+                    fig, [ax1, ax2] = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+
                     # --- Top Plot: SNR ---
                     #ax1.plot(dates, fdets_array, label='Freq. Detections', marker='x', linestyle='-', color='black',
-                    #         markersize=5, linewidth=0.5, alpha = 0.7)
-                    #ax1.plot(dates, snr_array, label='SNR', marker='x', linestyle='-', color='blue',
-                    #         markersize=5, linewidth=0.5, alpha = 0.7)
-                    #ax1.set_title(f'{mission_name.upper()} — SNR and Doppler Noise | Station: {station_code}')
-                    #ax1.set_ylabel('SNR')
-                    #ax1.grid(True)
-                    #ax1.legend()
-    
+                    #         markersize=5, linewidth=0.5, alpha = 0.7) # optionally, one could plot the frequency detections.
+
+                    ax1.plot(dates, snr_array, label='SNR', marker='o', linestyle='-', color='blue',
+                             markersize=3, linewidth=0.5, alpha = 0.7)
+                    ax1.plot(filtered_dates, filtered_snr, label=f'Filtered SNR, Retained: {median_retained:.2f}',
+                             marker='x', linestyle='-', color='orange', markersize=5, linewidth=0.5, alpha = 0.7)
+                    ax1.set_title(f'{mission_name.upper()} — SNR and Doppler Noise | Station: {station_code}')
+                    ax1.set_ylabel('SNR')
+                    ax1.grid(True)
+                    ax1.legend()
+
                     # --- Bottom Plot: Doppler Noise ---
                     ax2.plot(dates, doppler_noise_array*1000, label='Original Noise', marker='o', linestyle='-',
                              color='blue', markersize=3, linewidth=0.5, alpha = 0.7)
@@ -209,7 +318,7 @@ for mission_name, yymmdds in yymmdd_folders_per_mission.items():
                     ax2.grid(True)
                     ax2.legend()
                     ax2.set_title(f'{mission_name.upper()} — Doppler Noise | Station: {station_code}')
-    
+
                     # Improve x-axis labels
                     ax2.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
                     locator=MaxNLocator(prune='both', nbins=20)
@@ -262,16 +371,20 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
             mean_doppler = station_dict[station]['mean_doppler_noise']*1000 #convert to mHz
             rms_doppler = station_dict[station]['rms_doppler_noise']*1000 #convert to mHz
             mean_elevation = station_dict[station]['mean_elevation']
-            label = experiment_name if experiment_name not in labels_snr else None
+            if mission_name == 'vex':
+                label = 'Venus Express 2014/01' if 'Venus Express 2014/01' not in labels_snr else None
+
+            else:
+                label = experiment_name if experiment_name not in labels_snr else None
             color = color_dict[experiment_name]
             count+=1
-            labels_snr.add(experiment_name)
-            labels_snr_vs_noise.add(experiment_name)
+            labels_snr.add(label)
+            labels_snr_vs_noise.add(label)
             # only keep good observations
             if np.abs(mean_doppler) > bad_observations_mean_doppler_filter*1000 and mission_name != 'mro': # in mHz:
                 if BAD_OBSERVATIONS_FLAG:
                     count_bad +=1
-                    print(f'Bad Observation: {station}, {experiment_name},{np.abs(mean_doppler)} ')
+                    print(f'Bad Observation: {station}, {experiment_name}')
                     scans_to_remove[experiment_name].append(station)
                     ax1.errorbar(station, mean_snr, fmt='x', markersize=6, alpha=0.7, color='red')
                     ax1.errorbar(station, mean_snr, fmt='o', linewidth=2, markersize=6, alpha=0.5,
@@ -298,24 +411,26 @@ for experiment_name in mean_rms_user_defined_parameters.keys():
 
 bad_observations_percentage = (count_bad/count)*100
 print(count, count_bad)
-print(f"Percentage of Bad Scans: {bad_observations_percentage} %")
+
+if BAD_OBSERVATIONS_FLAG:
+    print(f"Percentage of Bad Scans: {bad_observations_percentage} %")
 
 # Final plot adjustments
 ax1.set_ylabel('SNR [dB]')
 ax1.set_xlabel(f'Station Code')
-ax1.grid()
+ax1.grid(True)
 ax1.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
 # Formatting SNR vs. Doppler Noise subplot
 ax2.set_xlabel('SNR [dB]')
 ax2.set_ylabel('RMS Doppler Noise [mHz]')
-ax2.grid()
+ax2.grid(True)
 ax2.set_yscale('log')
 
 # Formatting SNR vs. Doppler Noise subplot
 ax3.set_xlabel('Elevation [deg]')
 ax3.set_ylabel('SNR [dB]')
-ax3.grid()
+ax3.grid(True)
 
 plt.savefig(output_dir + experiment_name + '_dataset_statistics.png')
 
@@ -411,9 +526,16 @@ final_means_per_mission = {
     for mission, foms in mission_aggregates.items()
 }
 
-# Optional: Print results
+# Optional: Print results (these are the ones found in table 5 of Vidhya's paper).
 for mission, foms in final_means_per_mission.items():
     print(f"\nMission: {mission}")
-    print(f"Mean SNR (dB): {10 * np.log10(foms['mean_snr']) if foms['mean_snr'] else 'N/A'}")
-    print(f"Mean Doppler Noise (mHz): {foms['mean_doppler_noise']}")
-    print(f"RMS Doppler Noise (mHz): {foms['rms_doppler_noise']}")
+    if not BAD_OBSERVATIONS_FLAG:
+        print('The folllowing values refer to the UNFILTERED dataset (no z-score).')
+        print(f"Mean SNR (dB): {10 * np.log10(foms['mean_snr']) if foms['mean_snr'] else 'N/A'}")
+        print(f"Mean Doppler Noise (mHz): {foms['mean_doppler_noise']}")
+        print(f"RMS Doppler Noise (mHz): {foms['rms_doppler_noise']}")
+    else:
+        print('The folllowing values refer to the FILTERED dataset (z-score).')
+        print(f"Mean SNR (dB): {10 * np.log10(foms['mean_snr']) if foms['mean_snr'] else 'N/A'}")
+        print(f"Mean Doppler Noise (mHz): {foms['mean_doppler_noise']}")
+        print(f"RMS Doppler Noise (mHz): {foms['rms_doppler_noise']}")
