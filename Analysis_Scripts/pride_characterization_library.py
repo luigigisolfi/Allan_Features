@@ -529,8 +529,8 @@ class PrideDopplerCharacterization:
                     "mission_name": ["mro", 'mex', 'tgo'],
                     "vex_file_name": "ec064.vix",
                     "experiment_description": "MRO-TGO-MEX tracking",
-                    "exper_nominal_start": "2020y053d01h30m00s",
-                    "exper_nominal_stop": "2020y053d03h00m00s"
+                    "exper_nominal_start": "2018y155d04h00m00s",
+                    "exper_nominal_stop": "2018y155d06h00m00s"
                 },
 
                 "v140314": {
