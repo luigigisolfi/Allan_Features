@@ -1,0 +1,19 @@
+name: pride-doppler-analysis
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - seaborn
+  - regex
+  - astropy
+  - pillow  # for PIL
+  - allantools
+  - astroquery
+  - pip:
+      - regex
