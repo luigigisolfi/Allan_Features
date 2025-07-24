@@ -15,15 +15,6 @@ from datetime import timezone
 import datetime
 import shutil
 
-# %%
-def generate_random_color():
-    """Generates a random, well-spaced color in hexadecimal format."""
-    r = random.randint(0, 220)  # Avoid extremes (too dark/light)
-    g = random.randint(0, 220)
-    b = random.randint(0, 220)
-    return "#{:02x}{:02x}{:02x}".format(r, g, b)
-
-
 pride = PrideDopplerCharacterization() # create PRIDE Object
 process_fdets = pride.ProcessFdets() # create Process Fdets Object
 utilities = pride.Utilities() # create Utilities Object
@@ -31,17 +22,16 @@ analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 ############################################################ SET THE FLAGS ###########################################################################
 RUN_EXPERIMENTS_STATISTICS_FLAG = False # if True, creates the outputs from which the analysis is carried out.
-ALLAN_DEVIATIONS_FLAG = True # if True, creates and shows the Overlapping Allan Deviation plots.
+ALLAN_DEVIATIONS_FLAG = False # if True, creates and shows the Overlapping Allan Deviation plots.
 PLOT_GAUSSIAN_FLAG = False # if True, it plots the best fit Gaussian on top of Doppler noise distribution
 COMPARE_FILTERS_FLAG = False # if True, it plots the original data vs the z-score filtered one.
 BAD_OBSERVATIONS_FLAG = True # if True, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
 ######################################################################################################################################################
 
-
 # Select preferred start date end end date to perform the analysis
 start_date = datetime.datetime(2000, 1, 1, tzinfo=timezone.utc)
 end_date =  datetime.datetime(2024, 12, 31, tzinfo=timezone.utc)
-missions_to_analyse = ['mex', 'juice', 'min', 'mro', 'vex'] # select only the preferred mission names for which to perform the analysis
+missions_to_analyse = ['mex'] # select only the preferred mission names for which to perform the analysis
 
 root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/' # change this to your folder containing PRIDE data
 
@@ -192,7 +182,7 @@ for mission_name, yymmdds in yymmdd_folders_per_mission.items():
 
         # Produce Allan Deviations plot
         if ALLAN_DEVIATIONS_FLAG:
-            print('Creating Overlapping Allan Deviation plot...')
+            print(f'Creating Overlapping Allan Deviation plot for experiment {experiment_name}...')
             tau_min = 0
             tau_max = 100
             save_dir = output_dir
@@ -218,7 +208,7 @@ for mission_name, yymmdds in yymmdd_folders_per_mission.items():
             color_dict[experiment_name] = 'orangered'
 
         else:
-            color_dict[experiment_name] = generate_random_color()
+            color_dict[experiment_name] = utilities.generate_random_color()
 
         if not os.path.exists(output_dir):
             print(f'The folder {output_dir} does not exist. Skipping...')

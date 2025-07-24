@@ -21,6 +21,7 @@ import pandas as pd
 import re
 import csv
 from scipy.stats import norm
+import random
 
 ########################################################################################################################################
 ##################################################### Main Class Definition ############################################################
@@ -2621,6 +2622,14 @@ class PrideDopplerCharacterization:
                 if experiment == experiment_name:
                     mission_name = values['mission_name']
                     return mission_name
+
+        def generate_random_color(self):
+            """Generates a random, well-spaced color in hexadecimal format."""
+            r = random.randint(0, 220)  # Avoid extremes (too dark/light)
+            g = random.randint(0, 220)
+            b = random.randint(0, 220)
+            return "#{:02x}{:02x}{:02x}".format(r, g, b)
+
     ########################################################################################################################################
     ########################################################################################################################################
 
