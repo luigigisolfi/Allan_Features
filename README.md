@@ -1,5 +1,22 @@
-# Content
+# To Get Started: 
+1) Clone the repository:
 
+>git clone https://github.com/your_username/your_repo.git
+>cd your_repo
+
+2) Create and activate the environment:
+>conda env create -f environment.yaml
+>conda activate pride-doppler-analysis
+
+3) Run the analysis script:
+>python `pride_data_analysis.py`
+
+>**Note**
+> **Requirements (to run `pride_data_analysis.py`) :**
+> 1) Fdets input files must be present in the root_dir, hereby assumed to be: `analysed_pride_data/`.
+> 2) The folder structure should be: `analysed_pride_data/<mission_code>/<mission_code>_YYMM/<mission_code>_YYMMDD`. 
+
+# Content of the Repository
 This repository contains:
 
 - **Conversion Scripts** (e.g., `old2newfdets.py` and `correct_baseband_fdets.py`)  
