@@ -56,7 +56,7 @@ Each script is commented to facilitate reproducibility.
 For any questions, please contact Luigi Gisolfi: l.gisolfi@tudelft.nl
 
 ---
-## Useful (Provisional) Definitions
+# Useful (Provisional) Definitions
 
 1. **Original PRIDE data**  
    Refers to raw PRIDE data obtained from sources such as JIVE's Marcopolo server, the University of Tasmania, or any source internal to the PRIDE team.
@@ -84,12 +84,12 @@ For any questions, please contact Luigi Gisolfi: l.gisolfi@tudelft.nl
    Example: All Onsala station scans during the GR035 experiment make up a complete scan for Onsala.
 
 ---
-## List of Scripts and Brief Explanation
+# List of Scripts and Brief Explanation
 
 Each script in this repository is well-documented via comments and docstrings.  
 Below is a high-level summary of the available scripts.
 
-### Analysis Scripts
+## Analysis Scripts
 
 - **`./Analysis_Scripts/pride_data_analysis.py`**  
   Performs statistical analysis on PRIDE Doppler FDETS files.  
@@ -130,7 +130,7 @@ f
 
 ---
 
-### Conversion & Legacy Scripts
+## Conversion & Legacy Scripts
 
 These scripts should only be used when working with **original PRIDE data** in old formats:
 
