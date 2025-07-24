@@ -1,6 +1,10 @@
 """
-This script might be useful in splitting long scans for quicker and targeted analysis (for examples, mex gr035 are very long and dense).
-To use it with juice, just change the paths accordingly.
+This script might be useful for splitting long scans for quicker and targeted analysis (for examples, mex gr035 are very long and dense).
+To use it with other missions, just change the paths accordingly.
+
+NOTE
+A function performing the opposite operation (i.e. attaching multiple single scans, creating a complete scan) can also be found in
+the pride_characterization_library.py, under the utilities class.
 """
 from tudatpy.interface import spice
 import os

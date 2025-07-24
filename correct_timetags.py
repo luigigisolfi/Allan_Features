@@ -1,5 +1,5 @@
 """
-Experience with the dataset showed that some stations might have suffered from a constant time offset in the time tag, while still keeping the correct header.
+Experience with the original dataset showed that some stations might have suffered from a constant time offset in the time tag, while still keeping the correct header.
 This script
 1) checks for the observation time in the header
 2) checks that the day in the time tag is the same as the header
@@ -7,6 +7,7 @@ This script
 
 Note:
 Venus express data (especially Wetzell data) heavily suffered from this.
+Hopefully this will not be run EVER again, since the PRIDE DATA and PRIDE DATA NEW folders only contain the already-corrected tags.
 """
 import glob
 import os

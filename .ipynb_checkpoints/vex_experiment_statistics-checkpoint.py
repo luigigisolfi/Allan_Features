@@ -1,7 +1,31 @@
+# %%
+"""
+Script to perform statistical analysis on PRIDE Doppler FDETS files.
 
+This script:
+- Loads standard SPICE kernels.
+- Initializes PRIDE characterization tools.
+- Extracts Doppler noise, SNR, and elevation data from FDETS input files.
+- Generates user-defined parameter plots (SNR, Doppler noise, raw FDETS).
+- Generates elevation plots for each station and the whole experiment.
+- Computes statistical summaries (mean, std) of SNR and Doppler noise.
+- Combines SNR and elevation plots into single images for each station/date.
+
+This specific demo is configured to analyze:
+- Mission: 'juice'
+- Experiment: 'ec094b'
+
+Input folder structure assumed:
+    /{dataset}/{mission_name}/{experiment_name}/input/complete/
+
+Output folder structure:
+    /{dataset}/{mission_name}/{experiment_name}/output/
+
+Note:
+This code has to be run before being able to run dataset_statistics.py .
 """
-This script performs the same as what is performed in experiment_statistics, but it is tailored to the old structure of vex data.
-"""
+
+# %%
 import sys
 sys.path.append('/Users/lgisolfi/ClionProjects/Allan_Features/Analysis_Scripts/') # Adjust this to your actual library location
 from pride_characterization_library  import PrideDopplerCharacterization
@@ -14,7 +38,7 @@ utilities = pride.Utilities()
 analysis = pride.Analysis(process_fdets, utilities)
 
 # Define experiments to analyze
-old_format_files_folder = f"/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/vex/usable/converted_old_format_files/" # or change path accordingly
+old_format_files_folder = f"/Users/lgisolfi/Desktop/PRIDE_DATA/analysed_pride_data/vex/usable/converted_old_format_files/"
 vex_year_month_list  = [name for name in os.listdir(old_format_files_folder) if os.path.isdir(os.path.join(old_format_files_folder, name))]
 for vex_year_month in vex_year_month_list:
 
@@ -86,6 +110,7 @@ for vex_year_month in vex_year_month_list:
                     extracted_parameters_list= extracted_data_list,
                     doppler_noise_statistics = True,
                     snr_statistics= True,
+                    remove_outliers = True,
                     save_dir = os.path.join(output_dir, 'statistics')
                 )
 
