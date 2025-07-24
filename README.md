@@ -88,8 +88,8 @@ Below is a high-level summary of the available scripts.
     - Mean Doppler noise
     - Mean elevation angle
     - Allan Deviation for all stations within a given experiment
-
-    Supported missions: JUICE, MEX, MRO, MARS INSIGHT  
+f
+    Supported missions: JUICE, MEX, MRO, MARS INSIGHT, VENUS EXPRESS
       **Requirements:**
   1) Fdets input files must be present in the root_dir, hereby assumed to be: `analysed_pride_data/`.
   2) The folder structure should be: `analysed_pride_data/<mission_code>/<mission_code>_YYMM/<mission_code>_YYMMDD`. 
