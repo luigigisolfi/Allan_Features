@@ -1,6 +1,29 @@
-from pride_characterization_library import PrideDopplerCharacterization
-import os
-from collections import defaultdict
+'''
+# Objectives
+PRIDE Doppler Data Characterization Script
+------------------------------------------
+This script performs a detailed analysis of **PRIDE Doppler data** for selected space missions.
+It processes Fdets files to compute statistics on Doppler noise and SNR, filters bad data, and produces various plots.
+
+**Main features**:
+- Extraction of Doppler data from PRIDE observations.
+- Statistical filtering using z-score outlier detection.
+- Computation of user-defined parameters (SNR, Doppler noise).
+- Optional plotting of:
+- Allan deviation curves
+- Best-fit Gaussian distributions
+- Filtered vs. unfiltered data
+- Aggregation of results at experiment and mission level.
+
+Flags are provided to enable/disable certain features.
+
+NOTE: When running the script for the first time, the **RUN_EXPERIMENTS_STATISTICS_FLAG** must be set to **True**.
+
+**Author**: Luigi Gisolfi
+
+**Date**: 2025/07/24
+'''
+
 import matplotlib.pyplot as plt
 import copy
 import numpy as np
@@ -28,13 +51,12 @@ COMPARE_FILTERS_FLAG = False # if True, it plots the original data vs the z-scor
 BAD_OBSERVATIONS_FLAG = True # if True, it 1) plots the observations as flagged and 2) removes them from the final statistics for mean FoM computation
 ######################################################################################################################################################
 
-# Select preferred start date end end date to perform the analysis
+# Select preferred start date and end date to perform the analysis
 start_date = datetime.datetime(2000, 1, 1, tzinfo=timezone.utc)
 end_date =  datetime.datetime(2024, 12, 31, tzinfo=timezone.utc)
 missions_to_analyse = ['mex'] # select only the preferred mission names for which to perform the analysis
 
 root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/' # change this to your folder containing PRIDE data
-
 yymm_folders_to_consider = utilities.list_yymm(start_date, end_date)
 months_list = list(yymm_folders_to_consider.keys())
 days_list = [item for sublist in yymm_folders_to_consider.values() for item in sublist]
