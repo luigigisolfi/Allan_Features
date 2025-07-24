@@ -1,7 +1,7 @@
 # To Get Started: 
 1) Clone the repository:
 
->git clone https://github.com/your_username/your_repo.git
+>git clone https://github.com/luigigisolfi/PRIDE-DOPPLER-ANALYSIS/
 >cd your_repo
 
 2) Create and activate the environment:
