@@ -8,13 +8,6 @@ sys.path.append('/Users/lgisolfi/ClionProjects/Allan_Features/Analysis_Scripts/'
 
 from pride_characterization_library  import PrideDopplerCharacterization
 
-pride = PrideDopplerCharacterization()
-process_fdets = pride.ProcessFdets()
-utilities = pride.Utilities()
-analysis = pride.Analysis(process_fdets, utilities)
-process_vex_files = pride.ProcessVexFiles(process_fdets, utilities)
-format_fdets = pride.FormatFdets(process_fdets, utilities, process_vex_files)
-
 """
 This script processes spectral data files, checks for proper baseband frequencies in headers,
 and applies corrections when necessary. It supports handling single files or wildcard patterns
@@ -47,6 +40,13 @@ Outputs:
 ########################################################################################################################
 
 """
+
+pride = PrideDopplerCharacterization()
+process_fdets = pride.ProcessFdets()
+utilities = pride.Utilities()
+analysis = pride.Analysis(process_fdets, utilities)
+process_vex_files = pride.ProcessVexFiles(process_fdets, utilities)
+format_fdets = pride.FormatFdets(process_fdets, utilities, process_vex_files)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("filename", nargs='+',
