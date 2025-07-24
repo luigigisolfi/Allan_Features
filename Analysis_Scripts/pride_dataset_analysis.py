@@ -44,7 +44,7 @@ utilities = pride.Utilities() # create Utilities Object
 analysis = pride.Analysis(process_fdets, utilities) # create Analysis Object
 
 ############################################################ SET THE FLAGS ###########################################################################
-RUN_EXPERIMENTS_STATISTICS_FLAG = False # if True, creates the outputs from which the analysis is carried out.
+RUN_EXPERIMENTS_STATISTICS_FLAG = True # if True, creates the outputs from which the analysis is carried out.
 ALLAN_DEVIATIONS_FLAG = False # if True, creates and shows the Overlapping Allan Deviation plots.
 PLOT_GAUSSIAN_FLAG = False # if True, it plots the best fit Gaussian on top of Doppler noise distribution
 COMPARE_FILTERS_FLAG = False # if True, it plots the original data vs the z-score filtered one.
@@ -54,9 +54,9 @@ BAD_OBSERVATIONS_FLAG = True # if True, it 1) plots the observations as flagged 
 # Select preferred start date and end date to perform the analysis
 start_date = datetime.datetime(2000, 1, 1, tzinfo=timezone.utc)
 end_date =  datetime.datetime(2024, 12, 31, tzinfo=timezone.utc)
-missions_to_analyse = ['mex'] # select only the preferred mission names for which to perform the analysis
+missions_to_analyse = ['juice'] # select only the preferred mission names for which to perform the analysis
 
-root_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/' # change this to your folder containing PRIDE data
+root_dir = f'../analysed_pride_data' # change this to your folder containing PRIDE data
 yymm_folders_to_consider = utilities.list_yymm(start_date, end_date)
 months_list = list(yymm_folders_to_consider.keys())
 days_list = [item for sublist in yymm_folders_to_consider.values() for item in sublist]
@@ -70,7 +70,7 @@ for mission_name in missions_to_analyse:
         continue
 
     for yymm_folder in months_list:
-        if mission_name == 'vex' and yymm_folder != '1401':
+        if mission_name == 'vex' and yymm_folder != '1401': #for Vidhya's paper, we only care about vex_1401.
             continue
         month_folder_name = f"{mission_name}_{yymm_folder}"
         month_folder_path = os.path.join(mission_root, month_folder_name)
@@ -102,12 +102,12 @@ for mission_name, yymmdds in yymmdd_folders_per_mission.items():
     yymm_folders = [mission_name + '_' + yymmdd[:4] for yymmdd in yymmdds]
     experiment_names = [utilities.find_experiment_from_yymmdd(yymmdd) for yymmdd in yymmdds]
 
-    if BAD_OBSERVATIONS_FLAG and mission_name == 'mro':
+    if BAD_OBSERVATIONS_FLAG and mission_name == 'mro': # we know mro was transmitting with the onboard oscillator
         BAD_OBSERVATIONS_FLAG = False
 
     for yymm_folder, yymmdd_folder, experiment_name in zip(yymm_folders, yymmdd_folders, experiment_names):
-        fdets_folder_path = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/input/complete' #or insert your path
-        output_dir = f'/Users/lgisolfi/Desktop/PRIDE_DATA_NEW/analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/output/' #or insert your path
+        fdets_folder_path = f'../analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/input/complete' #or insert your path
+        output_dir = f'../analysed_pride_data/{mission_name}/{yymm_folder}/{yymmdd_folder}/output/' #or insert your path
 
         if RUN_EXPERIMENTS_STATISTICS_FLAG:
             if os.path.exists(output_dir):
